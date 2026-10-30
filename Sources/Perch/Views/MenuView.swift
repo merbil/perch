@@ -42,10 +42,28 @@ struct MenuView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            section("Appearance") {
+                FlowGrid(columns: 3) {
+                    ForEach(AppearanceChoice.allCases) { choice in
+                        Chip(title: choice.title, selected: prefs.appearance == choice, accent: prefs.accentColor(for: player)) {
+                            prefs.appearance = choice
+                        }
+                    }
+                }
+            }
+
             section("Position") {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(PositionChoice.allCases) { choice in
                         RadioRow(title: choice.title, selected: prefs.position == choice) { prefs.position = choice }
+                    }
+                }
+            }
+
+            section("Tucked away") {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(TuckedStyle.allCases) { style in
+                        RadioRow(title: style.title, selected: prefs.tuckedStyle == style) { prefs.tuckedStyle = style }
                     }
                 }
             }
@@ -55,6 +73,17 @@ struct MenuView: View {
                     ForEach(Accent.allCases) { accent in
                         Swatch(accent: accent, selected: prefs.accent == accent) { prefs.accent = accent }
                     }
+                }
+            }
+
+            HStack {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Reduce motion").font(.perch(13, .bold)).foregroundStyle(Palette.ink)
+                    Text("Still bars, titles and windows").font(.perch(11, .bold)).foregroundStyle(Palette.muted)
+                }
+                Spacer()
+                ArcadeSwitch(isOn: prefs.reduceMotion, accent: prefs.accentColor(for: player), label: "Reduce motion") {
+                    prefs.reduceMotion.toggle()
                 }
             }
 
@@ -132,7 +161,7 @@ private struct Chip: View {
                 .foregroundStyle(selected ? accent : Palette.ink)
                 .frame(maxWidth: .infinity)
                 .frame(height: 28)
-                .background(RoundedRectangle(cornerRadius: 8).fill(selected ? Palette.ink : .white))
+                .background(RoundedRectangle(cornerRadius: 8).fill(selected ? Palette.selected : Palette.field))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.ink, lineWidth: 2))
                 .contentShape(Rectangle())
         }
@@ -150,7 +179,7 @@ private struct RadioRow: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Circle().strokeBorder(Palette.ink, lineWidth: 2)
-                    .background(Circle().fill(.white))
+                    .background(Circle().fill(Palette.field))
                     .overlay(Circle().fill(Palette.ink).padding(5).opacity(selected ? 1 : 0))
                     .frame(width: 18, height: 18)
                 Text(title).font(.perch(13, .bold)).foregroundStyle(Palette.ink)
@@ -164,7 +193,7 @@ private struct RadioRow: View {
     }
 }
 
-/// Round colour swatch. The cover swatch shows the current album art.
+/// Round color swatch. The cover swatch shows the current album art.
 private struct Swatch: View {
     var accent: Accent
     var selected: Bool
@@ -209,9 +238,9 @@ struct ArcadeSwitch: View {
     var body: some View {
         Button(action: action) {
             ZStack(alignment: isOn ? .trailing : .leading) {
-                Capsule().fill(isOn ? accent : .white)
-                Circle().fill(isOn ? Palette.paper : Palette.sun)
-                    .overlay(Circle().strokeBorder(Palette.ink, lineWidth: 2))
+                Capsule().fill(isOn ? accent : Palette.field)
+                Circle().fill(isOn ? Palette.paperFixed : Palette.sun)
+                    .overlay(Circle().strokeBorder(Palette.inkFixed, lineWidth: 2))
                     .frame(width: 22, height: 22)
                     .padding(2)
             }
@@ -271,11 +300,18 @@ private struct UpdateRow: View {
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Palette.ink, lineWidth: 2))
         } else {
             HStack {
-                Text("Version \(updater.currentVersion)").font(.perch(12, .bold)).foregroundStyle(Palette.muted)
-                Spacer()
-                TextButton(title: checkTitle, muted: updater.state == .checking) {
+                Text("v\(updater.currentVersion)").font(.perch(12, .bold)).foregroundStyle(Palette.muted)
+                Spacer(minLength: 16)
+                Button {
                     Task { await updater.check() }
+                } label: {
+                    Marquee(text: checkTitle.uppercased(), font: .perch(12), nsFont: .perch(12),
+                            color: updater.state == .checking ? Palette.muted : Palette.ink, gap: 30)
+                        .frame(maxWidth: 170)
+                        .frame(minHeight: 28)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
                 .disabled(updater.state == .checking)
             }
         }
@@ -284,7 +320,7 @@ private struct UpdateRow: View {
     private var checkTitle: String {
         switch updater.state {
         case .checking: "Checking…"
-        case .upToDate: "Up to date · Check again"
+        case .upToDate: "Up to date · Recheck"
         case .failed: "Couldn't check · Retry"
         default: "Check for updates"
         }
@@ -304,9 +340,8 @@ private struct PillButton: View {
                 .frame(height: 28)
                 .background(Capsule().fill(Palette.paper))
                 .overlay(Capsule().strokeBorder(Palette.ink, lineWidth: 2))
-                .background(Capsule().fill(Palette.ink).offset(x: 2, y: 2))
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ArcadeButtonStyle(shadow: 2))
     }
 }

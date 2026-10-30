@@ -168,7 +168,7 @@ struct TileView: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
-                    .surface(radius: 24, shadow: Palette.ink)
+                    .surface(radius: 24)
                     .padding(12)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -217,7 +217,7 @@ struct CardView: View {
             }
             VStack(spacing: 4) {
                 GeometryReader { geo in
-                    Capsule().fill(.white)
+                    Capsule().fill(Palette.field)
                         .overlay(alignment: .leading) {
                             Rectangle().fill(prefs.accentColor(for: player)).frame(width: geo.size.width * player.progress)
                         }
@@ -262,7 +262,7 @@ struct CardMiniView: View {
                     PlayButton(size: 40, shadow: 0)
                 }
             }
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.ink).offset(x: 4, y: 4))
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.shadow).offset(x: 4, y: 4))
             .frame(width: 104, height: 104, alignment: .bottomLeading)
             ChipButton(symbol: "arrow.up.left.and.arrow.down.right", label: "Expand to the card", shadow: true) { state.expand() }
         }
@@ -286,7 +286,7 @@ struct DeckView: View {
                     HStack(alignment: .bottom) {
                         Text(lcdClock).font(.lcd(30)).foregroundStyle(Palette.lime)
                         Spacer(minLength: 4)
-                        EQBars(playing: player.isPlaying, color: Palette.lime)
+                        EQBars(playing: player.isPlaying && !prefs.reduceMotion, color: Palette.lime)
                     }
                     Marquee(text: marqueeText, font: .lcd(13),
                             nsFont: .monospacedSystemFont(ofSize: 13, weight: .bold),
@@ -312,7 +312,7 @@ struct DeckView: View {
                         width: 64, fill: prefs.accentColor(for: player)) { player.playPause() }
                 DeckKey(symbol: "forward.end.fill", label: "Next", width: 48) { player.next() }
                 Spacer()
-                DeckKey(symbol: "chevron.up", label: "Roll in", width: 44, fill: Palette.deckTrack, tint: Palette.paper) {
+                DeckKey(symbol: "chevron.up", label: "Roll in", width: 44, fill: Palette.deckTrack, tint: Palette.paperFixed) {
                     state.rollIn()
                 }
             }
@@ -321,7 +321,7 @@ struct DeckView: View {
         .padding(.top, 10)
         .padding(.bottom, 12)
         .frame(width: 340, height: 146)
-        .surface(flat: [.top], radius: 20, fill: Palette.ink, shadow: Color(hex: 0x9A8FB0))
+        .surface(flat: [.top], radius: 20, fill: Palette.deckBody, shadow: Palette.deckShadow, outline: Palette.inkFixed)
     }
 
     private var lcdClock: String {
@@ -339,8 +339,8 @@ private struct DeckKey: View {
     var symbol: String
     var label: String
     var width: CGFloat
-    var fill: Color = Palette.paper
-    var tint: Color = Palette.ink
+    var fill: Color = Palette.paperFixed
+    var tint: Color = Palette.inkFixed
     var action: () -> Void
 
     var body: some View {
@@ -350,6 +350,7 @@ private struct DeckKey: View {
                 .foregroundStyle(tint)
                 .frame(width: width, height: 34)
                 .background(RoundedRectangle(cornerRadius: 8).fill(fill))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.inkFixed, lineWidth: 2))
                 .overlay(alignment: .bottom) {
                     RoundedRectangle(cornerRadius: 8).fill(.black.opacity(0.18)).frame(height: 3)
                 }

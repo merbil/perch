@@ -20,6 +20,8 @@ Skim's Arcade building blocks (thick ink outlines, hard offset shadows, rounded 
 
 The side touching a screen edge has no outline and no rounding, so the player reads as stuck to it.
 
+Dark mode follows the Mac (or Light/Dark from the menu's Appearance chips). Paper becomes plum-black `#221C2B`, ink becomes cream `#FFF4E6` (outlines and text), shadows go black, inputs `#2E2738`, the desktop behind illustrations `#15111C`. Accents, album art, the app icon and text on accent fills never change. The deck is light paper with an ink outline in light mode and keeps its original dark body (`#17131F`, lilac-grey shadow) in dark mode; its LCD screen is dark in both.
+
 ## Forms
 
 Where the player sits picks the form. No manual "look" switch needed.
@@ -32,7 +34,9 @@ Where the player sits picks the form. No manual "look" switch needed.
 | C · Card | Dropped mid-screen | The main free-floating version. A small corner button shrinks it to album art only; the same button on the art expands it back. |
 | D · Deck | Dragged up to the menu bar, or right-click the menu bar icon | Opens right under the menu bar icon by default; can be dragged anywhere along the menu bar. Stays out until its own roll-in button. |
 
-Tucked art stays mostly inside the edge (22 px showing) and slides out when the pointer comes near; it slides back after a short pause. The tab's height follows the song title.
+Tucked art either peeks (22 px showing, slides out when the pointer comes near, back after a short pause) or always shows the album art; a menu setting picks. Its free sides show resize arrows: pulled taller it becomes the tab, pulled wider the pill. Pinching works too: pinch out on the tucked art for the tab, pinch in on the pill or tab to tuck it, and pinch to switch between card and album art. The tab's height follows the song title. Titles never end in "…": they scroll (or fade out with Reduce motion).
+
+The deck slides along the menu bar; pulled down more than 50 px it comes off and follows the normal drop rules, and let go near the top it hangs from the menu bar again.
 
 ## Logo
 
@@ -40,9 +44,9 @@ Four equaliser bars with a round bird sitting on the tallest one, beak pointing 
 
 ## Menu bar
 
-- Icon: the logo in one colour. The bars move while music plays and the bird rides the last bar; still when paused, low and flat when Spotify is closed.
+- Icon: the logo in one color. The bars move while music plays and the bird rides the last bar; still when paused or with Reduce motion, low and flat when Spotify is closed.
 - Left-click: the Perch menu.
-- Right-click: open D.
+- Right-click: hide or show Perch completely (the deck too). While Perch is hidden the bird is gone from the icon.
 
 ## Menu
 
@@ -51,9 +55,14 @@ In Perch's own style, dropping from the icon:
 - Show switch (Skim's Arcade switch).
 - View: Auto, Pill, Tab, Tile, Card, Art, Deck. Auto lets the drop position pick; any other view keeps its look and only moves.
 - Position: "Stick to the closest wall" or "Stay where I drop it" (default). Pill, tab, tile and deck always sit on a wall; this decides what card and art do, and what Auto does mid-screen (stick = pill on the closest wall).
-- Accent: 11 bright colours (tangerine, coral, pink, magenta, lilac, periwinkle, sky, mint, lime, sun, peach) plus "From Cover Art", which takes the most colourful hue of the album art.
+- Accent: 11 bright colors (tangerine, coral, pink, magenta, lilac, periwinkle, sky, mint, lime, sun, peach) plus "From Cover Art", which takes the most colorful hue of the album art.
+- Tucked away: peek out on hover, or always show the album art.
+- Reduce motion (starts from the system setting): still menu bar bars and deck bars, titles fade instead of scrolling, windows move without sliding.
 - Music: Spotify; Apple Music marked soon.
+- Version and a sliding update line ("Up to date · Recheck").
 - How Perch works (tutorial, also shown on first launch), Quit.
+
+The tutorial has five steps; the last asks for the Spotify permission on the spot (opening Spotify in the background if needed), so the macOS prompt comes right after setup instead of later. Its buttons lift on hover and sink when pressed.
 
 The player's right-click menu has the same View, Position and Accent pickers.
 

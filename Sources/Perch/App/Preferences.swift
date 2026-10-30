@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Observation
 
 /// Which look the player uses. Auto lets the drop position decide.
@@ -30,6 +30,38 @@ enum PositionChoice: String, CaseIterable, Identifiable {
     }
 }
 
+/// How the tucked art sits in the edge.
+enum TuckedStyle: String, CaseIterable, Identifiable {
+    case peek, art
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .peek: "Peek out on hover"
+        case .art: "Always show the album art"
+        }
+    }
+}
+
+/// Light, dark, or whatever the Mac uses.
+enum AppearanceChoice: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .system: "Auto"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
 /// Settings and the last position, kept in UserDefaults.
 @MainActor
 @Observable
@@ -41,6 +73,10 @@ final class Preferences {
     var position: PositionChoice { didSet { defaults.set(position.rawValue, forKey: "position") } }
     var isShown: Bool { didSet { defaults.set(isShown, forKey: "isShown") } }
     var hasSeenTutorial: Bool { didSet { defaults.set(hasSeenTutorial, forKey: "hasSeenTutorial") } }
+    var tuckedStyle: TuckedStyle { didSet { defaults.set(tuckedStyle.rawValue, forKey: "tuckedStyle") } }
+    /// Stops the menu bar bars, scrolling titles and sliding windows. Starts from the system setting.
+    var reduceMotion: Bool { didSet { defaults.set(reduceMotion, forKey: "reduceMotion") } }
+    var appearance: AppearanceChoice { didSet { defaults.set(appearance.rawValue, forKey: "appearance") } }
 
     var form: Form {
         didSet { defaults.set(try? JSONEncoder().encode(form), forKey: "form") }
@@ -63,6 +99,10 @@ final class Preferences {
         position = defaults.string(forKey: "position").flatMap(PositionChoice.init(rawValue:)) ?? .stay
         isShown = defaults.object(forKey: "isShown") as? Bool ?? true
         hasSeenTutorial = defaults.bool(forKey: "hasSeenTutorial")
+        appearance = defaults.string(forKey: "appearance").flatMap(AppearanceChoice.init(rawValue:)) ?? .system
+        tuckedStyle = defaults.string(forKey: "tuckedStyle").flatMap(TuckedStyle.init(rawValue:)) ?? .peek
+        reduceMotion = defaults.object(forKey: "reduceMotion") as? Bool
+            ?? NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         form = (defaults.data(forKey: "form")).flatMap { try? JSONDecoder().decode(Form.self, from: $0) } ?? .pill(.right)
         formBeforeDeck = (defaults.data(forKey: "formBeforeDeck")).flatMap { try? JSONDecoder().decode(Form.self, from: $0) }
         along = defaults.object(forKey: "along") as? Double ?? -1

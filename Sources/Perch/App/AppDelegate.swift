@@ -1,4 +1,5 @@
 import AppKit
+import Observation
 import SwiftUI
 
 @MainActor
@@ -20,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         prefs = Preferences(defaults: demo ? UserDefaults(suiteName: "com.merterbil.perch.demo")! : .standard)
         player = PlayerModel(source: demo ? DemoSource() : SpotifySource())
         panel = PanelController(player: player, prefs: prefs)
-        statusItem = StatusItemController(player: player)
+        statusItem = StatusItemController(player: player, prefs: prefs)
 
         let actions = MenuActions(
             toggleShown: { [weak self] in self?.toggleShown() },
@@ -37,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         statusItem.onRightClick = { [weak self] in
             self?.menu.close()
-            self?.panel.showDeck()
+            self?.panel.toggle()
         }
         panel.statusButtonFrame = { [weak self] in self?.statusItem.buttonFrame }
         player.onRefresh = { [weak self] in
@@ -45,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.panel.playerChanged()
         }
 
+        applyAppearance()
         player.start()
         // Demo runs never go online.
         if !demo { Updater.shared.start() }
@@ -54,13 +56,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// The menu's switch. The deck stays out until its own button rolls it in.
-    private func toggleShown() {
-        if panel.isVisible {
-            if panel.state.form == .deck { panel.rollIn() } else { panel.hide() }
-        } else {
-            panel.show()
+    /// Light, dark or the system's, for every Perch window. Follows the setting as it changes.
+    private func applyAppearance() {
+        withObservationTracking {
+            NSApp.appearance = prefs.appearance.nsAppearance
+        } onChange: { [weak self] in
+            DispatchQueue.main.async { self?.applyAppearance() }
         }
+    }
+
+    /// The menu's switch, same as right-clicking the icon.
+    private func toggleShown() {
+        panel.toggle()
     }
 
     private func showTutorial() {

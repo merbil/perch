@@ -1,11 +1,13 @@
 import AppKit
+import Observation
 
 /// Menu bar icon: four equaliser bars that move while music plays.
-/// Left click opens the menu, right click opens the deck.
+/// Left click opens the menu, right click hides or shows Perch. While Perch is hidden the bird is gone.
 @MainActor
 final class StatusItemController: NSObject {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let player: PlayerModel
+    private let prefs: Preferences
     private var timer: Timer?
 
     var onLeftClick: () -> Void = {}
@@ -16,9 +18,11 @@ final class StatusItemController: NSObject {
         return window.convertToScreen(button.convert(button.bounds, to: nil))
     }
 
-    init(player: PlayerModel) {
+    init(player: PlayerModel, prefs: Preferences) {
         self.player = player
+        self.prefs = prefs
         super.init()
+        observePrefs()
         guard let button = item.button else { return }
         button.image = Self.icon(levels: Self.resting)
         button.setAccessibilityLabel("Perch")
@@ -27,9 +31,23 @@ final class StatusItemController: NSObject {
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
+    private func observePrefs() {
+        withObservationTracking {
+            _ = prefs.isShown
+            _ = prefs.reduceMotion
+        } onChange: { [weak self] in
+            DispatchQueue.main.async {
+                self?.timer?.invalidate()
+                self?.timer = nil
+                self?.update()
+                self?.observePrefs()
+            }
+        }
+    }
+
     /// Call after every player refresh.
     func update() {
-        if player.isPlaying {
+        if player.isPlaying && !prefs.reduceMotion {
             guard timer == nil else { return }
             timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 12, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.tick() }
@@ -37,7 +55,7 @@ final class StatusItemController: NSObject {
         } else {
             timer?.invalidate()
             timer = nil
-            item.button?.image = Self.icon(levels: player.isIdle ? [0.15, 0.15, 0.15, 0.15] : Self.resting)
+            item.button?.image = Self.icon(levels: player.isIdle ? [0.15, 0.15, 0.15, 0.15] : Self.resting, bird: prefs.isShown)
         }
     }
 
@@ -48,7 +66,7 @@ final class StatusItemController: NSObject {
             let wave: Double = sin(t * (7 + Double(i % 3)) + index * 1.9)
             return 0.25 + 0.75 * (0.5 + 0.5 * wave)
         }
-        item.button?.image = Self.icon(levels: levels)
+        item.button?.image = Self.icon(levels: levels, bird: prefs.isShown)
     }
 
     @objc private func clicked() {
@@ -63,7 +81,7 @@ final class StatusItemController: NSObject {
     private static let resting: [Double] = [0.35, 0.65, 0.45, 0.8]
 
     /// The logo's bars, with the bird riding the tallest bar as it moves.
-    static func icon(levels: [Double]) -> NSImage {
+    static func icon(levels: [Double], bird: Bool = true) -> NSImage {
         let image = NSImage(size: NSSize(width: 22, height: 18), flipped: false) { _ in
             NSColor.black.setFill()
             var lastTop: CGFloat = 0
@@ -73,6 +91,7 @@ final class StatusItemController: NSObject {
                 NSBezierPath(roundedRect: bar, xRadius: 1, yRadius: 1).fill()
                 lastTop = bar.maxY
             }
+            guard bird else { return true }
             // Bird: round body on the last bar, beak pointing right, eye punched out.
             let body = NSRect(x: 11.6, y: lastTop + 0.3, width: 6.4, height: 5.4)
             NSBezierPath(ovalIn: body).fill()

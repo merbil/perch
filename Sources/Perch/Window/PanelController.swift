@@ -18,6 +18,7 @@ final class PerchPanel: NSPanel {
         hidesOnDeactivate = false
         isMovable = false
         isReleasedWhenClosed = false
+        acceptsMouseMovedEvents = true
     }
 
     override var canBecomeKey: Bool { true }
@@ -44,6 +45,13 @@ final class PerchPanel: NSPanel {
             return
         case .scrollWheel:
             MainActor.assumeIsolated { controller.scrolled(event) }
+        case .magnify:
+            MainActor.assumeIsolated { controller.pinched(event) }
+        case .mouseMoved:
+            super.sendEvent(event)
+            // After SwiftUI, so the resize cursor isn't reset straight away.
+            MainActor.assumeIsolated { controller.pointerMoved(event) }
+            return
         default:
             break
         }
@@ -125,19 +133,16 @@ final class PanelController {
 
     // MARK: Showing and hiding
 
-    /// Left click on the menu bar icon. The deck only goes away with its own roll-in button.
+    /// Right click on the menu bar icon and the menu's switch: hides or shows Perch completely.
     func toggle() {
-        if isVisible {
-            if state.form != .deck { hide() }
-        } else {
-            show()
-        }
+        isVisible ? hide() : show()
     }
 
-    func show(on screen: NSScreen? = nil) {
+    /// `remember: false` is for moves between forms, which shouldn't flip the Show setting.
+    func show(on screen: NSScreen? = nil, remember: Bool = true) {
         guard !isVisible else { return }
         isVisible = true
-        prefs.isShown = true
+        if remember { prefs.isShown = true }
         let screen = screen ?? (state.form == .deck ? menuBarScreen : currentScreen)
         let target = targetFrame(state.form, on: screen)
         let floats = !state.form.slidesFromEdge
@@ -150,10 +155,10 @@ final class PanelController {
         }
     }
 
-    func hide(completion: (() -> Void)? = nil) {
+    func hide(remember: Bool = true, completion: (() -> Void)? = nil) {
         guard isVisible else { completion?(); return }
         isVisible = false
-        prefs.isShown = false
+        if remember { prefs.isShown = false }
         let current = panel.frame
         let floats = !state.form.slidesFromEdge
         animate(duration: 0.25, {
@@ -178,7 +183,7 @@ final class PanelController {
         prefs.formBeforeDeck = isVisible ? state.form : nil
         prefs.deckCenterX = nil   // opens under the icon; can be dragged along the menu bar afterwards
         if isVisible {
-            hide { [weak self] in self?.presentDeck() }
+            hide(remember: false) { [weak self] in self?.presentDeck() }
         } else {
             presentDeck()
         }
@@ -186,16 +191,17 @@ final class PanelController {
 
     private func presentDeck() {
         setFormQuietly(.deck)
-        show(on: menuBarScreen)
+        show(on: menuBarScreen, remember: false)
+        prefs.isShown = true
     }
 
     func rollIn() {
         // With the Deck view chosen there's nothing to go back to: it just hides.
         let previous = prefs.view == .deck ? nil : prefs.formBeforeDeck
-        hide { [weak self] in
+        hide(remember: previous == nil) { [weak self] in
             guard let self, let previous else { return }
             self.setFormQuietly(previous)
-            self.show()
+            self.show(remember: false)
         }
     }
 
@@ -252,7 +258,7 @@ final class PanelController {
                 origin.x = clamp(along - size.width / 2, visible.minX, visible.maxX - size.width)
                 origin.y = visible.minY
             }
-            if case .tucked = form, !tuckedOut {
+            if case .tucked = form, !tuckedOut, prefs.tuckedStyle == .peek {
                 let hidden = (edge == .bottom ? size.height : size.width) - Layout.peek
                 switch edge {
                 case .left: origin.x -= hidden
@@ -296,20 +302,68 @@ final class PanelController {
         pressOrigin = panel.frame.origin
         resizeCandidate = nil
 
-        // The tucked art can be resized from its free sides: wider → pill, taller → tab.
-        if case .tucked(let edge) = state.form {
-            let point = event.locationInWindow
-            let content = NSRect(origin: .zero, size: panel.frame.size)
-            let zone: CGFloat = 16
-            switch edge {
-            case .left where point.x > content.maxX - zone: resizeCandidate = .wider
-            case .right where point.x < content.minX + zone: resizeCandidate = .wider
-            case .bottom where point.y > content.maxY - zone: resizeCandidate = .wider
-            default: break
-            }
-            if edge != .bottom, point.y > content.maxY - zone || point.y < content.minY + zone {
-                resizeCandidate = .taller
-            }
+        resizeCandidate = resizeZone(at: event.locationInWindow)
+    }
+
+    /// The tucked art can be resized from its free sides: wider → pill, taller → tab.
+    private func resizeZone(at point: NSPoint) -> ResizeAxis? {
+        guard case .tucked(let edge) = state.form else { return nil }
+        let content = NSRect(origin: .zero, size: panel.frame.size)
+        let zone: CGFloat = 16
+        if edge != .bottom, point.y > content.maxY - zone || point.y < content.minY + zone { return .taller }
+        switch edge {
+        case .left where point.x > content.maxX - zone: return .wider
+        case .right where point.x < content.minX + zone: return .wider
+        case .bottom where point.y > content.maxY - zone: return .wider
+        default: return nil
+        }
+    }
+
+    /// Resize arrows over the tucked art's grips, so it's clear they can be pulled.
+    func pointerMoved(_ event: NSEvent) {
+        guard case .idle = press else { return }
+        switch resizeZone(at: event.locationInWindow) {
+        case .taller: NSCursor.resizeUpDown.set()
+        case .wider: NSCursor.resizeLeftRight.set()
+        case nil: if case .tucked = state.form { NSCursor.arrow.set() }
+        }
+    }
+
+    // MARK: Pinch
+
+    private var pinch: CGFloat = 0
+    private var pinchDone = false
+
+    /// Pinch out: tucked art → tab (or pill), album art → card. Pinch in goes back.
+    func pinched(_ event: NSEvent) {
+        if event.phase == .began { pinch = 0; pinchDone = false }
+        if event.phase == .ended || event.phase == .cancelled { NSCursor.arrow.set(); return }
+        guard !pinchDone else { return }
+        pinch += event.magnification
+
+        if case .tucked = state.form { NSCursor.resizeUpDown.set() }
+        let opening = pinch > 0.25, closing = pinch < -0.2
+        guard opening || closing else { return }
+
+        var target: Form?
+        switch state.form {
+        case .tucked(let edge) where opening:
+            let tab = edge != .bottom && prefs.view != .pill
+            target = tab ? .tab(edge) : .pill(edge)
+        case .tab(let edge) where closing, .pill(let edge) where closing:
+            target = .tucked(edge)
+        case .cardMini where opening:
+            pinchDone = true
+            switchCard(to: .card)
+        case .card where closing:
+            pinchDone = true
+            switchCard(to: .cardMini)
+        default:
+            break
+        }
+        if let target {
+            pinchDone = true
+            setForm(target)
         }
     }
 
@@ -324,8 +378,8 @@ final class PanelController {
             press = resizeCandidate.map { .resizing($0) } ?? .moving
             dragged(event)
         case .moving:
-            if state.form == .deck {
-                // The deck only slides along the menu bar.
+            if state.form == .deck, dy > -50 {
+                // The deck slides along the menu bar; pulled further down it comes off.
                 let screen = panel.screen ?? menuBarScreen
                 let x = clamp(pressOrigin.x + dx, screen.frame.minX, screen.frame.maxX - panel.frame.width)
                 panel.setFrameOrigin(NSPoint(x: x, y: pressOrigin.y))
@@ -365,13 +419,19 @@ final class PanelController {
     private func dropped() {
         let mouse = NSEvent.mouseLocation
         let frame = panel.frame
-        if state.form == .deck {
-            prefs.deckCenterX = frame.midX
-            return
-        }
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? currentScreen
         let visible = screen.visibleFrame
         let center = NSPoint(x: frame.midX, y: frame.midY)
+
+        if state.form == .deck {
+            // Let go near the top (or with the Deck view chosen): it hangs from the menu bar again.
+            if mouse.y >= visible.maxY - 60 || prefs.view == .deck {
+                prefs.deckCenterX = frame.midX
+                setForm(.deck, on: screen)
+                return
+            }
+            prefs.formBeforeDeck = nil
+        }
 
         guard prefs.view == .auto else {
             if let form = form(for: prefs.view, near: center, on: screen) { setForm(form, on: screen) }
@@ -457,6 +517,7 @@ final class PanelController {
         withObservationTracking {
             _ = prefs.view
             _ = prefs.position
+            _ = prefs.tuckedStyle
         } onChange: { [weak self] in
             DispatchQueue.main.async {
                 self?.viewSettingsChanged()
@@ -467,6 +528,12 @@ final class PanelController {
 
     /// The View or Position setting changed: switch the player over right away.
     private func viewSettingsChanged() {
+        // The tucked style only moves the window in or out of the edge.
+        if case .tucked = state.form, isVisible, case .idle = press {
+            animate(duration: 0.2) {
+                self.panel.animator().setFrame(self.targetFrame(self.state.form, on: self.currentScreen), display: true)
+            }
+        }
         guard prefs.view != lastView || prefs.position != lastPosition else { return }
         lastView = prefs.view
         lastPosition = prefs.position
@@ -491,9 +558,9 @@ final class PanelController {
 
         if state.form == .deck {
             prefs.formBeforeDeck = nil
-            hide { [weak self] in
+            hide(remember: false) { [weak self] in
                 self?.setFormQuietly(target)
-                self?.show()
+                self?.show(remember: false)
             }
         } else if isVisible {
             setForm(target, on: screen)
@@ -557,7 +624,7 @@ final class PanelController {
 
     private func animate(duration: TimeInterval, _ changes: @escaping () -> Void, completion: (() -> Void)? = nil) {
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = duration
+            context.duration = prefs.reduceMotion ? 0 : duration
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             changes()
         }, completionHandler: completion)

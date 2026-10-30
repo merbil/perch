@@ -4,7 +4,7 @@ import AppKit
 /// every script is guarded by a running check, except Play, which opens it on purpose.
 @MainActor
 final class SpotifySource: MusicSource {
-    static let bundleID = "com.spotify.client"
+    nonisolated static let bundleID = "com.spotify.client"
 
     let name = "Spotify"
     let changeNotification: String? = "com.spotify.client.PlaybackStateChanged"

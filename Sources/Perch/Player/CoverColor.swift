@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 extension NSImage {
-    /// The cover's most colourful hue, pushed bright so it fits next to the other accents.
+    /// The cover's most colorful hue, pushed bright so it fits next to the other accents.
     /// Nil for black-and-white or very dull covers.
     func vibrantAccent() -> Color? {
         guard let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }

@@ -1,7 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Four short steps, each shown with the real player pieces rather than described.
+/// Five short steps, each shown with the real player pieces rather than described.
+/// The last one asks for the Spotify permission right away.
 struct TutorialView: View {
     @Environment(Preferences.self) private var prefs
     @Environment(PlayerModel.self) private var player
@@ -12,6 +13,7 @@ struct TutorialView: View {
     @State private var pillState = PanelState(form: .pill(.right))
     @State private var tuckedState = PanelState(form: .tucked(.right))
     @State private var tabState = PanelState(form: .tab(.left))
+    @State private var permission = SpotifyPermission()
 
     private let steps: [(title: String, text: String)] = [
         ("Put it anywhere",
@@ -22,6 +24,8 @@ struct TutorialView: View {
          "Grab the tucked art by its top or bottom and pull: you get the tab. Pull its outer side: the pill."),
         ("Clicks worth knowing",
          ""),
+        ("Let Perch reach Spotify",
+         "macOS asks once whether Perch may control Spotify. That's how it reads the song and presses play for you."),
     ]
 
     var body: some View {
@@ -30,7 +34,17 @@ struct TutorialView: View {
                 Text("Step \(step + 1) of \(steps.count)".uppercased())
                     .font(.perch(11, .heavy)).foregroundStyle(Palette.muted).tracking(0.6)
                 Spacer()
-                ChipButton(symbol: "xmark", label: "Close") { onDone() }
+                Button { onDone() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: 26, height: 26)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Palette.paper))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.ink, lineWidth: 2))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(ArcadeButtonStyle(shape: AnyShape(RoundedRectangle(cornerRadius: 8)), shadow: 2))
+                .accessibilityLabel("Close")
             }
 
             illustration
@@ -43,12 +57,16 @@ struct TutorialView: View {
                 Text(steps[step].title).titleStyle(20)
                 if step == 3 {
                     clicksList
+                } else if step == 4 {
+                    Text(steps[step].text).font(.perch(14, .semibold)).foregroundStyle(Palette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    permissionButton
                 } else {
                     Text(steps[step].text).font(.perch(14, .semibold)).foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .frame(height: 96, alignment: .top)
+            .frame(height: 112, alignment: .top)
 
             HStack(spacing: 8) {
                 ForEach(0..<steps.count, id: \.self) { index in
@@ -57,22 +75,31 @@ struct TutorialView: View {
                 }
                 Spacer()
                 if step > 0 {
-                    TextButton(title: "Back", muted: true) { withAnimation { step -= 1 } }
+                    Button { withAnimation { step -= 1 } } label: {
+                        Text("BACK")
+                            .font(.perch(13))
+                            .foregroundStyle(Palette.ink)
+                            .padding(.horizontal, 16)
+                            .frame(height: 36)
+                            .background(Capsule().fill(Palette.paper))
+                            .overlay(Capsule().strokeBorder(Palette.ink, lineWidth: 3))
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(ArcadeButtonStyle())
                 }
                 Button {
                     if step == steps.count - 1 { onDone() } else { withAnimation { step += 1 } }
                 } label: {
                     Text(step == steps.count - 1 ? "GOT IT" : "NEXT")
                         .font(.perch(13))
-                        .foregroundStyle(Palette.ink)
+                        .foregroundStyle(Palette.onAccent)
                         .padding(.horizontal, 18)
                         .frame(height: 36)
                         .background(Capsule().fill(prefs.accentColor(for: player)))
                         .overlay(Capsule().strokeBorder(Palette.ink, lineWidth: 3))
-                        .background(Capsule().fill(Palette.ink).offset(x: 3, y: 3))
                         .contentShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ArcadeButtonStyle())
                 .keyboardShortcut(.defaultAction)
             }
         }
@@ -81,11 +108,46 @@ struct TutorialView: View {
         .surface(radius: 22)
         .padding(.trailing, 6)
         .padding(.bottom, 6)
-        .animation(.spring(duration: 0.3), value: step)
+        .animation(prefs.reduceMotion ? nil : .spring(duration: 0.3), value: step)
+        .onAppear { permission.refresh() }
+    }
+
+    @ViewBuilder private var permissionButton: some View {
+        switch permission.status {
+        case .allowed:
+            Label("Perch can control Spotify", systemImage: "checkmark.circle.fill")
+                .font(.perch(13)).foregroundStyle(Palette.ink)
+        case .asking:
+            Text("Waiting for your answer…").font(.perch(13, .bold)).foregroundStyle(Palette.muted)
+        case .denied:
+            HStack(spacing: 10) {
+                Text("Not allowed.").font(.perch(13, .bold)).foregroundStyle(Palette.ink)
+                smallButton("Open System Settings") { permission.openSystemSettings() }
+            }
+        case .notInstalled:
+            Text("Spotify isn't installed on this Mac.").font(.perch(13, .bold)).foregroundStyle(Palette.muted)
+        case .unknown:
+            smallButton("Allow Spotify access") { permission.request() }
+        }
+    }
+
+    private func smallButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title.uppercased())
+                .font(.perch(12))
+                .foregroundStyle(Palette.onAccent)
+                .padding(.horizontal, 14)
+                .frame(height: 30)
+                .background(Capsule().fill(Palette.sun))
+                .overlay(Capsule().strokeBorder(Palette.ink, lineWidth: 2.5))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(ArcadeButtonStyle(shadow: 2))
+        .padding(.top, 4)
     }
 
     private var desktop: some View {
-        Color(hex: 0xE7E1F0)
+        Palette.desktop
     }
 
     @ViewBuilder private var illustration: some View {
@@ -113,6 +175,18 @@ struct TutorialView: View {
                 EdgeTabView(edge: .left).environment(tabState).scaleEffect(0.8).frame(width: 44, height: 170)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        case 4:
+            HStack(spacing: 22) {
+                LogoMark(bird: prefs.accentColor(for: player)).frame(width: 96, height: 96)
+                Image(systemName: "arrow.left.arrow.right").font(.system(size: 26, weight: .black)).foregroundStyle(Palette.ink)
+                Image(systemName: "music.note")
+                    .font(.system(size: 40, weight: .black))
+                    .foregroundStyle(Palette.ink)
+                    .frame(width: 88, height: 88)
+                    .background(Circle().fill(Palette.paper))
+                    .overlay(Circle().strokeBorder(Palette.ink, lineWidth: 3))
+                    .background(Circle().fill(Palette.shadow).offset(x: 4, y: 4))
+            }
         default:
             VStack(spacing: 14) {
                 HStack(spacing: 2) {
@@ -131,9 +205,10 @@ struct TutorialView: View {
 
     private var clicksList: some View {
         VStack(alignment: .leading, spacing: 3) {
-            clickRow("Click the bars", "this menu, with the views and colours")
-            clickRow("Right-click the bars", "the deck")
+            clickRow("Click the bars", "this menu, with the views and colors")
+            clickRow("Right-click the bars", "hide or show Perch")
             clickRow("Right-click the player", "quick settings")
+            clickRow("Pinch the card", "just the album art, and back")
         }
     }
 

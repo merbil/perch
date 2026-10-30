@@ -12,7 +12,7 @@ Public at github.com/merbil/perch, DMG attached to release v0.2.0. Adds the in-a
 - Tutorial: 4 steps, shown on first launch and from the menu.
 - Snapshots of the menu and each tutorial step are in design/snapshots.
 
-Not tried by hand yet: the menu closing on outside clicks, the peek timing, view switching while the deck is out, the cover-art colour against real Spotify art.
+Not tried by hand yet: the menu closing on outside clicks, the peek timing, view switching while the deck is out, the cover-art color against real Spotify art.
 
 
 ## 2026-10-30, overnight: v0.1 first build
@@ -51,7 +51,7 @@ To see every form as an image without running the app: `.build/debug/Perch --sna
   - Card mid-screen. Its corner button shrinks it to album art; the art's corner button expands it again.
   - Deck: opens under the menu bar icon, can be dragged along the menu bar only, and closes only with its ⌃ button. When it closes, the player you had before comes back.
 - Where you drop the player picks the form: into the menu bar → deck, a corner → tile, an edge → pill (a tucked or tab player keeps its kind), anywhere else → card.
-- Right-click on the player: source (Spotify; Apple Music marked "soon"), snap to edges, snap to corners, accent colour, show deck, hide, quit.
+- Right-click on the player: source (Spotify; Apple Music marked "soon"), snap to edges, snap to corners, accent color, show deck, hide, quit.
 - Slides in and out from its edge; the card fades.
 - Visible on every Space and over full-screen apps.
 - Remembers the form, position and settings.
@@ -69,7 +69,7 @@ To see every form as an image without running the app: `.build/debug/Perch --sna
 - Left-click on the menu bar icon does nothing while the deck is out, because only the ⌃ button rolls it in. Option-click still has Hide.
 - The deck opens under the icon every time. A position you drag it to lasts until it rolls in.
 - On the bottom edge there's no tab: pulling the tucked art either way gives the pill.
-- One accent colour for all forms (default tangerine). The deck's screen is always lime.
+- One accent color for all forms (default tangerine). The deck's screen is always lime.
 - The deck uses the system monospaced font, not a pixel font.
 
 ### Next

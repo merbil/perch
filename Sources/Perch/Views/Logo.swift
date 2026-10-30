@@ -6,6 +6,7 @@ import SwiftUI
 struct LogoMark: View {
     var bird: Color = Palette.tangerine
     var beak: Color = Palette.sun
+    var ink: Color = Palette.ink
 
     var body: some View {
         Canvas { context, size in
@@ -13,7 +14,7 @@ struct LogoMark: View {
             func rect(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> CGRect {
                 CGRect(x: x * s, y: y * s, width: w * s, height: h * s)
             }
-            let ink = GraphicsContext.Shading.color(Palette.ink)
+            let ink = GraphicsContext.Shading.color(self.ink)
 
             for (x, y) in [(30.0, 92.0), (54, 66), (78, 80), (102, 62)] {
                 context.fill(Path(roundedRect: rect(x, y, 18, 128 - y), cornerRadius: 5 * s), with: ink)
@@ -49,15 +50,15 @@ struct AppIconView: View {
         let line = tile * 0.03
         let shadow = tile * 0.04
         ZStack {
-            RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Palette.ink)
+            RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Palette.inkFixed)
                 .frame(width: tile, height: tile)
                 .offset(x: shadow, y: shadow)
-            RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Palette.paper)
+            RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Palette.paperFixed)
                 .frame(width: tile, height: tile)
-            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.ink, lineWidth: line)
+            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.inkFixed, lineWidth: line)
                 .frame(width: tile, height: tile)
             // The mark's drawing sits a little right of its grid's centre; nudge it back.
-            LogoMark().frame(width: tile * 0.84, height: tile * 0.84)
+            LogoMark(ink: Palette.inkFixed).frame(width: tile * 0.84, height: tile * 0.84)
                 .offset(x: -tile * 0.84 * 5 / 160, y: tile * 0.84 * 1.5 / 160)
         }
         .offset(x: -shadow / 2, y: -shadow / 2)

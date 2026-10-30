@@ -58,13 +58,31 @@ enum Snapshot {
             }
         }
 
+        // Dark mode versions of the main looks.
+        for shot in [Shot(name: "dark-a-pill-right", form: .pill(.right)), Shot(name: "dark-c-card", form: .card),
+                     Shot(name: "dark-b-tile-hover", form: .tile(.bottomLeft), hover: true), Shot(name: "dark-d-deck", form: .deck)] {
+            let state = PanelState(form: shot.form)
+            state.forceHover = shot.hover
+            let size = Layout.windowSize(for: shot.form, tabHeight: state.tabHeight)
+            let view = PlayerRoot().environment(state).environment(prefs).environment(demo)
+                .frame(width: size.width, height: size.height)
+            if let image = renderDark(view) {
+                write(image, to: folder.appendingPathComponent("\(shot.name).png"))
+                rendered.append((shot, image))
+            }
+        }
+        if let image = renderDark(MenuView(actions: MenuActions()).environment(prefs).environment(demo)) {
+            write(image, to: folder.appendingPathComponent("dark-menu.png"))
+            rendered.append((Shot(name: "dark-menu", form: .card), image))
+        }
+
         // The menu and each tutorial step.
         let actions = MenuActions()
         if let image = render(MenuView(actions: actions).environment(prefs).environment(demo)) {
             write(image, to: folder.appendingPathComponent("menu.png"))
             rendered.append((Shot(name: "menu", form: .card), image))
         }
-        for step in 0..<4 {
+        for step in 0..<5 {
             let tutorial = TutorialView(onDone: {}, step: step).environment(prefs).environment(demo)
             if let image = render(tutorial) {
                 write(image, to: folder.appendingPathComponent("tutorial-\(step + 1).png"))
@@ -72,7 +90,7 @@ enum Snapshot {
             }
         }
 
-        // One contact sheet on the desktop colour, to look at everything at once.
+        // One contact sheet on the desktop color, to look at everything at once.
         let sheet = VStack(alignment: .leading, spacing: 28) {
             ForEach(Array(rendered.enumerated()), id: \.offset) { _, entry in
                 VStack(alignment: .leading, spacing: 8) {
@@ -83,7 +101,7 @@ enum Snapshot {
         }
         .padding(40)
         .frame(width: 560, alignment: .leading)
-        .background(Color(hex: 0xE7E1F0))
+        .background(Palette.desktop)
         if let image = render(sheet) {
             write(image, to: folder.appendingPathComponent("sheet.png"))
         }
@@ -115,6 +133,14 @@ enum Snapshot {
         let player = PlayerModel(source: source)
         player.refresh()
         return player
+    }
+
+    private static func renderDark<V: View>(_ view: V) -> NSImage? {
+        var image: NSImage?
+        NSAppearance(named: .darkAqua)!.performAsCurrentDrawingAppearance {
+            image = render(view.environment(\.colorScheme, .dark))
+        }
+        return image
     }
 
     private static func render<V: View>(_ view: V) -> NSImage? {

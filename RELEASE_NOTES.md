@@ -1,5 +1,25 @@
 # Perch release notes
 
+## 0.2.1 (unreleased)
+
+### Added
+- Dark mode. Perch follows your Mac, or you can pick Light or Dark in the menu. In dark mode the paper turns plum-black with cream outlines, and the deck keeps its dark look.
+- Right-click the bars in the menu bar to hide Perch completely, and again to bring it back. While it's hidden the bird leaves the icon.
+- Pinch to switch between the card and just the album art. Pinch out on tucked art to get the tab, and pinch in on the pill or tab to tuck it away.
+- A setting for the tucked art. It can peek out of the edge until you point at it, or always show the album art.
+- Reduce motion in the menu. The bars stop moving, long titles fade out instead of scrolling, and windows move without sliding.
+- The tutorial's last step asks for the Spotify permission right away, so macOS doesn't ask later out of nowhere.
+- Resize arrows on the tucked art's edges, so it's clear you can pull them.
+
+### Changed
+- You can pull the deck down off the menu bar and drop it anywhere.
+- In light mode the deck is light and papery like the other looks.
+- Tutorial buttons bounce a little when you point at them.
+- The version line in the menu is shorter and scrolls when it doesn't fit.
+
+### Fixed
+- Changing the view no longer flips the Show switch off and on.
+
 ## 0.2.0 (build 2): 2026-10-30
 
 The first public version.
@@ -11,7 +31,7 @@ The first public version.
 - Pull the tucked art taller and you get a slim tab with the song title running up it. Pull it wider and the pill comes back.
 - The card has a small button that shrinks it to just the album art and back.
 - Long titles scroll instead of getting cut off.
-- Click the bars in the menu bar for the menu. You can pick a fixed look instead of Auto, have it stick to the closest wall or stay where you drop it, and choose from 11 accent colours. There's also one that takes its colour from the album art.
+- Click the bars in the menu bar for the menu. You can pick a fixed look instead of Auto, have it stick to the closest wall or stay where you drop it, and choose from 11 accent colors. There's also one that takes its color from the album art.
 - Right-click the bars to open the deck. Right-click the player for quick settings.
 - A short tutorial on first launch, and again from the menu any time.
 - One-click updates. Perch checks GitHub once a day, and Update in the menu swaps in the new version. It keeps the same signature, so macOS doesn't ask for the Spotify permission again.

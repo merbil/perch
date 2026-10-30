@@ -30,7 +30,8 @@ struct Surface: ViewModifier {
     var flat: Set<Side>
     var radius: CGFloat
     var fill: Color = Palette.paper
-    var shadow: Color = Palette.ink
+    var shadow: Color = Palette.shadow
+    var outline: Color = Palette.ink
 
     private var shape: UnevenRoundedRectangle {
         UnevenRoundedRectangle(cornerRadii: RectangleCornerRadii(
@@ -61,14 +62,15 @@ struct Surface: ViewModifier {
                 .padding(overflow)
             }
             .overlay {
-                shape.strokeBorder(Palette.ink, lineWidth: 3).padding(overflow)
+                shape.strokeBorder(outline, lineWidth: 3).padding(overflow)
             }
     }
 }
 
 extension View {
-    func surface(flat: Set<Side> = [], radius: CGFloat, fill: Color = Palette.paper, shadow: Color = Palette.ink) -> some View {
-        modifier(Surface(flat: flat, radius: radius, fill: fill, shadow: shadow))
+    func surface(flat: Set<Side> = [], radius: CGFloat, fill: Color = Palette.paper, shadow: Color = Palette.shadow,
+                 outline: Color = Palette.ink) -> some View {
+        modifier(Surface(flat: flat, radius: radius, fill: fill, shadow: shadow, outline: outline))
     }
 }
 
@@ -110,7 +112,7 @@ struct PlaceholderCover: View {
                 Circle().fill(Palette.tangerine)
                     .frame(width: w * 0.5, height: w * 0.5)
                     .position(x: w * 0.625, y: h * 0.42)
-                Palette.ink.frame(height: h * 0.29).offset(y: h * 0.71)
+                Palette.inkFixed.frame(height: h * 0.29).offset(y: h * 0.71)
                 Capsule().fill(Palette.lime)
                     .frame(width: w * 0.375, height: h * 0.085)
                     .offset(x: w * 0.125, y: h * 0.79)
@@ -129,11 +131,11 @@ struct PlayButton: View {
         Button { player.playPause() } label: {
             Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                 .font(.system(size: size * 0.36, weight: .black))
-                .foregroundStyle(Palette.ink)
+                .foregroundStyle(Palette.onAccent)
                 .frame(width: size, height: size)
                 .background(Circle().fill(prefs.accentColor(for: player)))
                 .overlay(Circle().strokeBorder(Palette.ink, lineWidth: 3))
-                .background(Circle().fill(Palette.ink).offset(x: shadow, y: shadow))
+                .background(Circle().fill(Palette.shadow).offset(x: shadow, y: shadow))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -179,6 +181,35 @@ struct ProgressStrip: View {
     }
 }
 
+/// Arcade-style press: lifts a little on hover, sinks into its shadow when pressed.
+struct ArcadeButtonStyle: ButtonStyle {
+    var shape: AnyShape = AnyShape(Capsule())
+    var shadow: CGFloat = 3
+
+    func makeBody(configuration: Configuration) -> some View {
+        ArcadeButtonBody(configuration: configuration, shape: shape, shadow: shadow)
+    }
+
+    private struct ArcadeButtonBody: View {
+        @Environment(Preferences.self) private var prefs
+        @State private var hovering = false
+        let configuration: Configuration
+        let shape: AnyShape
+        let shadow: CGFloat
+
+        var body: some View {
+            let lift: CGFloat = configuration.isPressed ? shadow : (hovering ? -1.5 : 0)
+            configuration.label
+                .offset(x: lift, y: lift)
+                .background(shape.fill(Palette.shadow).offset(x: shadow, y: shadow))
+                .scaleEffect(hovering && !configuration.isPressed && !prefs.reduceMotion ? 1.04 : 1)
+                .onHover { hovering = $0 }
+                .animation(prefs.reduceMotion ? nil : .spring(duration: 0.2, bounce: 0.5), value: hovering)
+                .animation(prefs.reduceMotion ? nil : .spring(duration: 0.12), value: configuration.isPressed)
+        }
+    }
+}
+
 /// Small outlined square button with an icon, for minimise / expand / roll in.
 struct ChipButton: View {
     var symbol: String
@@ -196,7 +227,7 @@ struct ChipButton: View {
                 .frame(width: 26, height: 26)
                 .background(RoundedRectangle(cornerRadius: 8).fill(fill))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.ink, lineWidth: 2))
-                .background(RoundedRectangle(cornerRadius: 8).fill(Palette.ink).offset(x: shadow ? 2 : 0, y: shadow ? 2 : 0))
+                .background(RoundedRectangle(cornerRadius: 8).fill(Palette.shadow).offset(x: shadow ? 2 : 0, y: shadow ? 2 : 0))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -207,6 +238,7 @@ struct ChipButton: View {
 
 /// Title that scrolls when it doesn't fit, like Winamp's.
 struct Marquee: View {
+    @Environment(Preferences.self) private var prefs
     var text: String
     var font: Font
     var nsFont: NSFont
@@ -219,6 +251,14 @@ struct Marquee: View {
         GeometryReader { geo in
             if textWidth <= geo.size.width {
                 label
+            } else if prefs.reduceMotion {
+                // Still: the end fades out instead of moving (and never turns into "…").
+                label
+                    .frame(width: geo.size.width, alignment: .leading)
+                    .clipped()
+                    .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.8),
+                                                 .init(color: .clear, location: 1)],
+                                         startPoint: .leading, endPoint: .trailing))
             } else {
                 TimelineView(.animation) { timeline in
                     // Scroll one full loop, then rest at the start so the beginning is readable.

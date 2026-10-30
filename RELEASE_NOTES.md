@@ -1,5 +1,13 @@
 # Perch release notes
 
+## 0.2.3 (build 5): 2026-10-30
+
+### Added
+- An About button at the bottom of the menu. It shows your version, these release notes, links to the website, the story behind Perch and GitHub, and a Ko-fi button.
+
+### Fixed
+- The update box no longer says Perch can't replace itself. It always offers Update now, and Download only shows up if an update really fails.
+
 ## 0.2.2 (build 4): 2026-10-30
 
 ### Changed

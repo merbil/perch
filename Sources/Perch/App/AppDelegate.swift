@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController!
     private var menu: MenuPanelController!
     private var tutorial: TutorialWindowController?
+    private var about: TutorialWindowController?
 
     init(demo: Bool) {
         self.demo = demo
@@ -28,6 +29,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showTutorial: { [weak self] in
                 self?.menu.close()
                 self?.showTutorial()
+            },
+            showAbout: { [weak self] in
+                self?.menu.close()
+                self?.showAbout()
             }
         )
         menu = MenuPanelController(content: MenuView(actions: actions).environment(prefs).environment(player))
@@ -68,6 +73,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The menu's switch, same as right-clicking the icon.
     private func toggleShown() {
         panel.toggle()
+    }
+
+    private func showAbout() {
+        let view = AboutView(onClose: { [weak self] in
+            self?.about?.close()
+            self?.about = nil
+        })
+        .environment(prefs)
+        .environment(player)
+        about?.close()
+        about = TutorialWindowController(content: view)
+        about?.show()
     }
 
     private func showTutorial() {

@@ -76,6 +76,18 @@ enum Snapshot {
             rendered.append((Shot(name: "dark-menu", form: .card), image))
         }
 
+        if let image = render(AboutView(onClose: {}).environment(prefs).environment(demo)) {
+            write(image, to: folder.appendingPathComponent("about.png"))
+        }
+        // ScrollView doesn't render in ImageRenderer, so the notes get their own image.
+        if let image = render(ReleaseNotesText(notes: ReleaseNotes.load()).environment(prefs).padding(12)
+            .frame(width: 380).background(Palette.field)) {
+            write(image, to: folder.appendingPathComponent("about-release-notes.png"))
+        }
+        if let image = renderDark(AboutView(onClose: {}).environment(prefs).environment(demo)) {
+            write(image, to: folder.appendingPathComponent("dark-about.png"))
+        }
+
         // The menu and each tutorial step.
         let actions = MenuActions()
         if let image = render(MenuView(actions: actions).environment(prefs).environment(demo)) {

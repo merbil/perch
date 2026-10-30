@@ -37,14 +37,13 @@ final class Updater {
         var notice: String? {
             switch self {
             case .installFailed: Updater.failureText
-            case .needsManualDownload: Updater.fallbackText
+            case .needsManualDownload: Updater.failureText
             default: nil
             }
         }
     }
 
     nonisolated static let failureText = "Couldn't update automatically, but you can download it instead."
-    nonisolated static let fallbackText = "Perch can't replace itself where it is now. Move Perch to the Applications folder in your home folder for one-click updates, or download it instead."
 
     private(set) var state = State.idle
     private(set) var isRunning = false
@@ -69,13 +68,14 @@ final class Updater {
     var offersInstall: Bool {
         guard available != nil else { return false }
         if isWorking { return true }
-        return state != .installFailed && state != .needsManualDownload && UpdateInstaller.canInstall(at: Bundle.main.bundleURL)
+        // Always try first; Download only takes over after a real failure.
+        return state != .installFailed && state != .needsManualDownload
     }
 
     /// Why the Download button is shown instead of Update, if it is.
     var notice: String? {
         if let text = state.notice { return text }
-        return available != nil && !offersInstall ? Self.fallbackText : nil
+        return nil
     }
 
     var currentVersion: String {
@@ -184,7 +184,11 @@ final class Updater {
     func install() async {
         guard let release = available, !isWorking, state != .checking else { return }
         let bundleURL = Bundle.main.bundleURL
-        guard UpdateInstaller.canInstall(at: bundleURL) else { state = .needsManualDownload; return }
+        guard UpdateInstaller.canInstall(at: bundleURL) else {
+            NSLog("Perch: can't replace itself at \(bundleURL.path)")
+            state = .needsManualDownload
+            return
+        }
         let (current, bundleID) = (currentVersion, Bundle.main.bundleIdentifier)
         var workFolder: URL?
         defer { if let workFolder { try? FileManager.default.removeItem(at: workFolder) } }

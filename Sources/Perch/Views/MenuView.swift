@@ -5,6 +5,7 @@ import SwiftUI
 struct MenuActions {
     var toggleShown: () -> Void = {}
     var showTutorial: () -> Void = {}
+    var showAbout: () -> Void = {}
     var quit: () -> Void = { NSApp.terminate(nil) }
 }
 
@@ -105,8 +106,12 @@ struct MenuView: View {
             UpdateRow()
 
             HStack(spacing: 8) {
-                FooterButton(symbol: "questionmark", title: "How it works", action: actions.showTutorial)
-                FooterButton(symbol: "power", title: "Quit", action: actions.quit)
+                FooterButton(symbol: "questionmark.circle.fill", title: "Tutorial", action: actions.showTutorial)
+                FooterButton(symbol: "info.circle.fill", title: "About", action: actions.showAbout)
+                FooterButton(symbol: "power", title: nil, action: actions.quit)
+                    .frame(width: 40)
+                    .accessibilityLabel("Quit Perch")
+                    .help("Quit Perch")
             }
         }
         .padding(16)
@@ -352,14 +357,15 @@ private struct UpdateRow: View {
 /// One of the two buttons at the bottom of the menu.
 private struct FooterButton: View {
     var symbol: String
-    var title: String
+    /// Nil: icon only.
+    var title: String?
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Image(systemName: symbol).font(.system(size: 10, weight: .black))
-                Text(title.uppercased()).font(.perch(11))
+                if let title { Text(title.uppercased()).font(.perch(11)).lineLimit(1).fixedSize() }
             }
             .foregroundStyle(Palette.ink)
             .frame(maxWidth: .infinity)

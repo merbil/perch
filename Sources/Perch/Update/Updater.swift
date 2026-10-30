@@ -82,9 +82,9 @@ final class Updater {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
     }
 
-    /// Perch's public repository. Once it exists, switch to its numeric ID (like Perch does), so a
-    /// renamed or re-registered `merbil/perch` can't take over.
-    static let latestReleaseURL = URL(string: "https://api.github.com/repos/merbil/perch/releases/latest")!
+    /// Found by repository ID, not by name: a renamed or re-registered `merbil/perch` can't take over.
+    static let repositoryID = 1439728933
+    static let latestReleaseURL = URL(string: "https://api.github.com/repositories/\(repositoryID)/releases/latest")!
     static let autoKey = "autoUpdateCheck"
     nonisolated private static let interval: TimeInterval = 24 * 60 * 60
     /// Larger answers are refused; a release answer is a few KB.

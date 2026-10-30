@@ -1,6 +1,10 @@
 # Perch status
 
-## 2026-10-30, round 2 (not committed yet)
+## 2026-10-30: 0.2.0, first public release
+
+Public at github.com/merbil/perch, DMG attached to release v0.2.0. Adds the in-app updater (copied from Glow), the logo and app icon, and scrolling titles everywhere. To release: bump the version in Resources/Info.plist, run `scripts/make-dmg.sh`, then `gh release create v<version>` with the DMG attached.
+
+## 2026-10-30, round 2
 
 - The tab's height now follows the song title.
 - Tucked art peeks 22 px out of the edge and slides out on hover.

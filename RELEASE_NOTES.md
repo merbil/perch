@@ -1,6 +1,6 @@
 # Perch release notes
 
-## 0.2.1 (unreleased)
+## 0.2.1 (build 3): 2026-10-30
 
 ### Added
 - Dark mode. Perch follows your Mac, or you can pick Light or Dark in the menu. In dark mode the paper turns plum-black with cream outlines, and the deck keeps its dark look.

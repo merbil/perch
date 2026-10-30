@@ -1,5 +1,9 @@
 # Perch status
 
+## 2026-10-30: 0.2.1 released (dark mode, right-click hides, pinch, reduce motion)
+
+First real test of the in-app update: Mert clicks Update in installed 0.2.0.
+
 ## 2026-10-30: 0.2.0, first public release
 
 Public at github.com/merbil/perch, DMG attached to release v0.2.0. Adds the in-app updater (copied from Glow), the logo and app icon, and scrolling titles everywhere. To release: bump the version in Resources/Info.plist, run `scripts/make-dmg.sh`, then `gh release create v<version>` with the DMG attached.

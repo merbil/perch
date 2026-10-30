@@ -9,6 +9,8 @@ enum Snapshot {
         var form: Form
         var hover = false
         var closed = false
+        /// Which demo song: 0 short-ish, 1 long, 2 short.
+        var song = 0
     }
 
     private static let shots: [Shot] = [
@@ -19,6 +21,9 @@ enum Snapshot {
         Shot(name: "a-tucked-right-hover", form: .tucked(.right), hover: true),
         Shot(name: "tab-left", form: .tab(.left)),
         Shot(name: "tab-left-hover", form: .tab(.left), hover: true),
+        Shot(name: "tab-left-long-title", form: .tab(.left), song: 1),
+        Shot(name: "tab-left-short-title", form: .tab(.left), song: 2),
+        Shot(name: "c-card-long-title", form: .card, song: 1),
         Shot(name: "b-tile-bottom-left", form: .tile(.bottomLeft)),
         Shot(name: "b-tile-top-right-hover", form: .tile(.topRight), hover: true),
         Shot(name: "c-card", form: .card),
@@ -37,17 +42,33 @@ enum Snapshot {
 
         var rendered: [(Shot, NSImage)] = []
         for shot in shots {
+            let player = shot.closed ? closed : shot.song == 0 ? demo : demoPlayer(song: shot.song)
             let state = PanelState(form: shot.form)
             state.forceHover = shot.hover
-            let size = Layout.windowSize(for: shot.form)
+            state.tabHeight = Layout.tabHeight(for: player.title)
+            let size = Layout.windowSize(for: shot.form, tabHeight: state.tabHeight)
             let view = PlayerRoot()
                 .environment(state)
                 .environment(prefs)
-                .environment(shot.closed ? closed : demo)
+                .environment(player)
                 .frame(width: size.width, height: size.height)
             if let image = render(view) {
                 write(image, to: folder.appendingPathComponent("\(shot.name).png"))
                 rendered.append((shot, image))
+            }
+        }
+
+        // The menu and each tutorial step.
+        let actions = MenuActions()
+        if let image = render(MenuView(actions: actions).environment(prefs).environment(demo)) {
+            write(image, to: folder.appendingPathComponent("menu.png"))
+            rendered.append((Shot(name: "menu", form: .card), image))
+        }
+        for step in 0..<4 {
+            let tutorial = TutorialView(onDone: {}, step: step).environment(prefs).environment(demo)
+            if let image = render(tutorial) {
+                write(image, to: folder.appendingPathComponent("tutorial-\(step + 1).png"))
+                rendered.append((Shot(name: "tutorial-\(step + 1)", form: .card), image))
             }
         }
 
@@ -67,6 +88,33 @@ enum Snapshot {
             write(image, to: folder.appendingPathComponent("sheet.png"))
         }
         print("Wrote \(rendered.count) snapshots to \(folder.path)")
+    }
+
+    static func renderIcon(to url: URL) {
+        let renderer = ImageRenderer(content: AppIconView(size: 1024))
+        renderer.scale = 1
+        if let image = renderer.nsImage { write(image, to: url) }
+
+        // The menu bar icon at 8×, playing and resting, for checking the bird.
+        let frames: [[Double]] = [[0.35, 0.65, 0.45, 0.8], [0.9, 0.3, 0.7, 0.2], [0.15, 0.15, 0.15, 0.15]]
+        let big = NSImage(size: NSSize(width: 22 * 8 * 3 + 40, height: 18 * 8 + 20), flipped: false) { _ in
+            NSColor.white.setFill()
+            NSRect(x: 0, y: 0, width: 22 * 8 * 3 + 40, height: 18 * 8 + 20).fill()
+            for (i, levels) in frames.enumerated() {
+                StatusItemController.icon(levels: levels)
+                    .draw(in: NSRect(x: 10 + Double(i) * (22 * 8 + 10), y: 10, width: 22 * 8, height: 18 * 8))
+            }
+            return true
+        }
+        write(big, to: url.deletingLastPathComponent().appendingPathComponent("menu-bar-icon.png"))
+    }
+
+    private static func demoPlayer(song: Int) -> PlayerModel {
+        let source = DemoSource()
+        for _ in 0..<song { source.next() }
+        let player = PlayerModel(source: source)
+        player.refresh()
+        return player
     }
 
     private static func render<V: View>(_ view: V) -> NSImage? {

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum ScreenEdge: String, Codable {
@@ -52,11 +53,12 @@ enum Form: Codable, Hashable {
         }
     }
 
-    var contentSize: CGSize {
+    /// The tab grows with its title, so its height is passed in.
+    func contentSize(tabHeight: CGFloat) -> CGSize {
         switch self {
         case .pill: CGSize(width: 372, height: 72)
         case .tucked: CGSize(width: 72, height: 72)
-        case .tab: CGSize(width: 52, height: 210)
+        case .tab: CGSize(width: 52, height: tabHeight)
         case .tile: CGSize(width: 220, height: 268)
         case .card: CGSize(width: 300, height: 236)
         case .cardMini: CGSize(width: 104, height: 104)
@@ -86,8 +88,17 @@ enum Layout {
         )
     }
 
-    static func windowSize(for form: Form) -> CGSize {
-        let size = form.contentSize
+    /// How much of the tucked art stays on screen until the pointer comes near.
+    static let peek: CGFloat = 22
+
+    /// Tab height for a title: art on top, then the title running up the strip.
+    static func tabHeight(for title: String) -> CGFloat {
+        let textWidth = (title.uppercased() as NSString).size(withAttributes: [.font: NSFont.perch(13)]).width
+        return min(max(8 + 34 + 12 + textWidth + 20, 110), 320).rounded(.up)
+    }
+
+    static func windowSize(for form: Form, tabHeight: CGFloat = 210) -> CGSize {
+        let size = form.contentSize(tabHeight: tabHeight)
         let insets = insets(for: form)
         return CGSize(width: size.width + insets.leading + insets.trailing,
                       height: size.height + insets.top + insets.bottom)

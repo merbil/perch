@@ -8,7 +8,11 @@ final class PanelState {
     var form: Form
     /// Snapshots render hover states without a mouse.
     var forceHover = false
+    /// Height of the tab, fitted to the current title.
+    var tabHeight: CGFloat = 210
 
+    /// The tucked art reports hover, so the window can slide out of the edge.
+    @ObservationIgnored var tuckedHover: (Bool) -> Void = { _ in }
     @ObservationIgnored var minimise: () -> Void = {}
     @ObservationIgnored var expand: () -> Void = {}
     @ObservationIgnored var rollIn: () -> Void = {}
@@ -127,7 +131,7 @@ struct PlayButton: View {
                 .font(.system(size: size * 0.36, weight: .black))
                 .foregroundStyle(Palette.ink)
                 .frame(width: size, height: size)
-                .background(Circle().fill(prefs.accent.color))
+                .background(Circle().fill(prefs.accentColor(for: player)))
                 .overlay(Circle().strokeBorder(Palette.ink, lineWidth: 3))
                 .background(Circle().fill(Palette.ink).offset(x: shadow, y: shadow))
                 .contentShape(Circle())
@@ -166,7 +170,7 @@ struct ProgressStrip: View {
 
     var body: some View {
         GeometryReader { geo in
-            Rectangle().fill(prefs.accent.color)
+            Rectangle().fill(prefs.accentColor(for: player))
                 .frame(width: geo.size.width * player.progress, height: height)
                 .frame(maxHeight: .infinity, alignment: .bottom)
         }
@@ -217,10 +221,14 @@ struct Marquee: View {
                 label
             } else {
                 TimelineView(.animation) { timeline in
+                    // Scroll one full loop, then rest at the start so the beginning is readable.
                     let cycle = textWidth + gap
-                    let offset = CGFloat(timeline.date.timeIntervalSinceReferenceDate) * speed
+                    let pause: Double = 1.6
+                    let loop = Double(cycle / speed) + pause
+                    let elapsed = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: loop)
+                    let offset = CGFloat(max(0, elapsed - pause)) * speed
                     HStack(spacing: gap) { label; label }
-                        .offset(x: -offset.truncatingRemainder(dividingBy: cycle))
+                        .offset(x: -offset)
                 }
             }
         }
@@ -261,6 +269,21 @@ struct EQBars: View {
         guard playing else { return resting[i % resting.count] }
         let speed = 6.0 + Double(i % 3)
         return 0.3 + 0.7 * (0.5 + 0.5 * sin(t * speed + Double(i) * 1.7))
+    }
+}
+
+/// One line of player text that scrolls when it's too long, never cut off with "…".
+struct ScrollingLine: View {
+    var text: String
+    var size: CGFloat
+    /// Titles are black-weight capitals; secondary lines are bold and muted.
+    var isTitle = true
+
+    var body: some View {
+        Marquee(text: isTitle ? text.uppercased() : text,
+                font: .perch(size, isTitle ? .black : .bold),
+                nsFont: .perch(size, weight: isTitle ? .black : .bold),
+                color: isTitle ? Palette.ink : Palette.muted)
     }
 }
 

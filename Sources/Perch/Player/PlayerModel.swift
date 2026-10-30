@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import Observation
 
 /// What's playing, refreshed from the source once a second and whenever it posts a change.
@@ -8,7 +9,11 @@ final class PlayerModel {
     private(set) var state: PlaybackState = .notRunning
     private(set) var track: Track?
     private(set) var position: Double = 0
-    private(set) var artwork: NSImage?
+    private(set) var artwork: NSImage? {
+        didSet { coverAccent = artwork?.vibrantAccent() }
+    }
+    /// Accent picked from the album art, for the "From Cover Art" setting.
+    private(set) var coverAccent: Color?
 
     @ObservationIgnored let source: MusicSource
     /// Called after every refresh (the menu bar icon listens to this).

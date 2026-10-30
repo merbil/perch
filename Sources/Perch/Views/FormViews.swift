@@ -28,13 +28,12 @@ struct PlayerRoot: View {
 
     @ViewBuilder private var menu: some View {
         @Bindable var prefs = prefs
-        Section("Source") {
-            Toggle("Spotify", isOn: .constant(true))
-            Button("Apple Music (soon)") {}.disabled(true)
+        Picker("View", selection: $prefs.view) {
+            ForEach(ViewChoice.allCases) { Text($0.title).tag($0) }
         }
-        Divider()
-        Toggle("Snap to edges", isOn: $prefs.snapToEdges)
-        Toggle("Snap to corners", isOn: $prefs.snapToCorners)
+        Picker("Position", selection: $prefs.position) {
+            ForEach(PositionChoice.allCases) { Text($0.title).tag($0) }
+        }
         Picker("Accent", selection: $prefs.accent) {
             ForEach(Accent.allCases) { Text($0.title).tag($0) }
         }
@@ -70,8 +69,8 @@ struct PillView: View {
         HStack(spacing: 12) {
             CoverArt(size: 50, radius: 12)
             VStack(alignment: .leading, spacing: 1) {
-                Marquee(text: player.title.uppercased(), font: .perch(15), nsFont: .perch(15))
-                Text(subtitle).font(.perch(12, .bold)).foregroundStyle(Palette.muted).lineLimit(1)
+                ScrollingLine(text: player.title, size: 15)
+                ScrollingLine(text: subtitle, size: 12, isTitle: false)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 4) {
@@ -110,6 +109,7 @@ struct TuckedView: View {
         .frame(width: 72, height: 72)
         .surface(flat: [edge.side], radius: 18)
         .tracksHover($hovering)
+        .onChange(of: hovering) { _, isHovering in state.tuckedHover(isHovering) }
         .animation(.spring(duration: 0.25), value: hovering)
     }
 }
@@ -130,14 +130,14 @@ struct EdgeTabView: View {
                     PlayButton(size: 34, shadow: 0)
                 }
             }
-            Text(player.title)
-                .titleStyle(13)
-                .frame(width: 150, alignment: .trailing)
+            let textLength = state.tabHeight - 8 - 34 - 10 - 14
+            ScrollingLine(text: player.title, size: 13)
+                .frame(width: textLength)
                 .rotationEffect(.degrees(-90))
-                .frame(width: 20, height: 150)
+                .frame(width: 20, height: textLength)
         }
         .padding(.top, 8)
-        .frame(width: 52, height: 210, alignment: .top)
+        .frame(width: 52, height: state.tabHeight, alignment: .top)
         .overlay { ProgressStrip() }
         .surface(flat: [edge.side], radius: 18)
         .tracksHover($hovering)
@@ -176,8 +176,8 @@ struct TileView: View {
             .frame(width: 220, height: 196)
             Rectangle().fill(Palette.ink).frame(height: 3)
             VStack(alignment: .leading, spacing: 2) {
-                Text(player.title).titleStyle(15)
-                Text(player.artist).font(.perch(12, .bold)).foregroundStyle(Palette.muted).lineLimit(1)
+                ScrollingLine(text: player.title, size: 15)
+                ScrollingLine(text: player.artist, size: 12, isTitle: false)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -203,8 +203,8 @@ struct CardView: View {
             HStack(spacing: 12) {
                 CoverArt(size: 72, radius: 14)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(player.title).titleStyle(16).minimumScaleFactor(0.75)
-                    Text(player.artist).font(.perch(13, .bold)).foregroundStyle(Palette.muted).lineLimit(1)
+                    ScrollingLine(text: player.title, size: 16)
+                    ScrollingLine(text: player.artist, size: 13, isTitle: false)
                     Text(player.source.name.uppercased())
                         .font(.perch(11))
                         .foregroundStyle(Palette.paper)
@@ -219,7 +219,7 @@ struct CardView: View {
                 GeometryReader { geo in
                     Capsule().fill(.white)
                         .overlay(alignment: .leading) {
-                            Rectangle().fill(prefs.accent.color).frame(width: geo.size.width * player.progress)
+                            Rectangle().fill(prefs.accentColor(for: player)).frame(width: geo.size.width * player.progress)
                         }
                         .clipShape(Capsule())
                         .overlay(Capsule().strokeBorder(Palette.ink, lineWidth: 2))
@@ -309,7 +309,7 @@ struct DeckView: View {
             HStack(spacing: 6) {
                 DeckKey(symbol: "backward.end.fill", label: "Previous", width: 48) { player.previous() }
                 DeckKey(symbol: player.isPlaying ? "pause.fill" : "play.fill", label: player.isPlaying ? "Pause" : "Play",
-                        width: 64, fill: prefs.accent.color) { player.playPause() }
+                        width: 64, fill: prefs.accentColor(for: player)) { player.playPause() }
                 DeckKey(symbol: "forward.end.fill", label: "Next", width: 48) { player.next() }
                 Spacer()
                 DeckKey(symbol: "chevron.up", label: "Roll in", width: 44, fill: Palette.deckTrack, tint: Palette.paper) {

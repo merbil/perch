@@ -32,11 +32,30 @@ Where the player sits picks the form. No manual "look" switch needed.
 | C · Card | Dropped mid-screen | The main free-floating version. A small corner button shrinks it to album art only; the same button on the art expands it back. |
 | D · Deck | Dragged up to the menu bar, or right-click the menu bar icon | Opens right under the menu bar icon by default; can be dragged anywhere along the menu bar. Stays out until its own roll-in button. |
 
+Tucked art stays mostly inside the edge (22 px showing) and slides out when the pointer comes near; it slides back after a short pause. The tab's height follows the song title.
+
+## Logo
+
+Four equaliser bars with a round bird sitting on the tallest one, beak pointing right (no tail). Drawn in code in `Views/Logo.swift`; `scripts/make-icon.sh` renders the app icon from it. App icon: the mark on a paper tile with an ink outline and a hard shadow. The bird is tangerine with a sun-yellow beak; in the menu header it takes the accent.
+
 ## Menu bar
 
-- Icon: equaliser bars like D's, moving while music plays, still when paused.
-- Left-click: show / hide Perch.
+- Icon: the logo in one colour. The bars move while music plays and the bird rides the last bar; still when paused, low and flat when Spotify is closed.
+- Left-click: the Perch menu.
 - Right-click: open D.
+
+## Menu
+
+In Perch's own style, dropping from the icon:
+
+- Show switch (Skim's Arcade switch).
+- View: Auto, Pill, Tab, Tile, Card, Art, Deck. Auto lets the drop position pick; any other view keeps its look and only moves.
+- Position: "Stick to the closest wall" or "Stay where I drop it" (default). Pill, tab, tile and deck always sit on a wall; this decides what card and art do, and what Auto does mid-screen (stick = pill on the closest wall).
+- Accent: 11 bright colours (tangerine, coral, pink, magenta, lilac, periwinkle, sky, mint, lime, sun, peach) plus "From Cover Art", which takes the most colourful hue of the album art.
+- Music: Spotify; Apple Music marked soon.
+- How Perch works (tutorial, also shown on first launch), Quit.
+
+The player's right-click menu has the same View, Position and Accent pickers.
 
 ## Behaviour
 
@@ -44,6 +63,12 @@ Where the player sits picks the form. No manual "look" switch needed.
 - Nothing playing or Spotify closed: last track dimmed; play opens Spotify.
 - Visible on all Spaces, including full-screen apps. Stays on the display it was put on.
 - First run triggers macOS's "Perch wants to control Spotify" permission prompt.
+
+## Updates
+
+Same as Glow. Once a day Perch asks GitHub for the latest release of merbil/perch (one request, no personal data). The menu shows "Perch x.y is out" with an Update button. Update downloads the release DMG and checks it before touching anything: signed with the same certificate, same bundle ID, the announced version, newer than this one. Then it swaps the app in place and relaunches. Because the path and signature stay the same, macOS keeps the "control Spotify" permission, so updating never asks again. Where Perch can't replace itself (run from the DMG, a read-only folder), the menu offers Download instead.
+
+Releases: `scripts/make-dmg.sh` builds build/Perch-<version>.dmg, signed with the Glow Local Signing certificate. Publish it as a GitHub release tagged v<version>.
 
 ## Sources
 

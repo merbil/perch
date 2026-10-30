@@ -74,11 +74,19 @@ final class PanelController {
     private var resizeCandidate: ResizeAxis?
     private var swipe: CGFloat = 0
     private var swipeDone = false
+    /// Tucked art is mostly inside the edge until the pointer comes near.
+    private var tuckedOut = false
+    private var peekWork: DispatchWorkItem?
+    private var lastView: ViewChoice
+    private var lastPosition: PositionChoice
 
     init(player: PlayerModel, prefs: Preferences) {
         self.player = player
         self.prefs = prefs
         state = PanelState(form: prefs.form)
+        state.tabHeight = Layout.tabHeight(for: player.title)
+        lastView = prefs.view
+        lastPosition = prefs.position
 
         let root = PlayerRoot()
             .environment(state)
@@ -87,8 +95,10 @@ final class PanelController {
         panel.contentView = FirstMouseHostingView(rootView: root)
         panel.controller = self
 
-        state.minimise = { [weak self] in self?.setForm(.cardMini) }
-        state.expand = { [weak self] in self?.setForm(.card) }
+        state.minimise = { [weak self] in self?.switchCard(to: .cardMini) }
+        state.expand = { [weak self] in self?.switchCard(to: .card) }
+        state.tuckedHover = { [weak self] in self?.tuckedHoverChanged($0) }
+        observeViewSettings()
         state.rollIn = { [weak self] in self?.rollIn() }
         state.showDeck = { [weak self] in self?.showDeck() }
         state.hide = { [weak self] in self?.hide() }
@@ -180,7 +190,8 @@ final class PanelController {
     }
 
     func rollIn() {
-        let previous = prefs.formBeforeDeck
+        // With the Deck view chosen there's nothing to go back to: it just hides.
+        let previous = prefs.view == .deck ? nil : prefs.formBeforeDeck
         hide { [weak self] in
             guard let self, let previous else { return }
             self.setFormQuietly(previous)
@@ -201,11 +212,32 @@ final class PanelController {
     private func setFormQuietly(_ form: Form) {
         state.form = form
         prefs.form = form
+        tuckedOut = false
+    }
+
+    /// Card ⇄ album art. A fixed Card or Art view follows along.
+    private func switchCard(to form: Form) {
+        if prefs.view == .card || prefs.view == .art {
+            lastView = form == .card ? .card : .art
+            prefs.view = lastView
+        }
+        setForm(form)
+    }
+
+    /// Called after every player refresh: the tab follows the title's length.
+    func playerChanged() {
+        let height = Layout.tabHeight(for: player.title)
+        guard height != state.tabHeight else { return }
+        state.tabHeight = height
+        guard case .tab = state.form, isVisible, case .idle = press else { return }
+        animate(duration: 0.2) {
+            self.panel.animator().setFrame(self.targetFrame(self.state.form, on: self.currentScreen), display: true)
+        }
     }
 
     func targetFrame(_ form: Form, on screen: NSScreen) -> NSRect {
         let visible = screen.visibleFrame
-        let size = Layout.windowSize(for: form)
+        let size = Layout.windowSize(for: form, tabHeight: state.tabHeight)
         var origin = NSPoint.zero
 
         switch form {
@@ -219,6 +251,14 @@ final class PanelController {
                 let along = prefs.along >= 0 ? prefs.along : visible.midX
                 origin.x = clamp(along - size.width / 2, visible.minX, visible.maxX - size.width)
                 origin.y = visible.minY
+            }
+            if case .tucked = form, !tuckedOut {
+                let hidden = (edge == .bottom ? size.height : size.width) - Layout.peek
+                switch edge {
+                case .left: origin.x -= hidden
+                case .right: origin.x += hidden
+                case .bottom: origin.y -= hidden
+                }
             }
         case .tile(let corner):
             let sides = corner.sides
@@ -301,7 +341,8 @@ final class PanelController {
             }
             if amount > 24 {
                 press = .finished
-                setForm(axis == .taller && edge != .bottom ? .tab(edge) : .pill(edge))
+                let tab = edge != .bottom && (prefs.view == .tab || (prefs.view != .pill && axis == .taller))
+                setForm(tab ? .tab(edge) : .pill(edge))
             }
         case .idle, .finished:
             break
@@ -318,7 +359,9 @@ final class PanelController {
         }
     }
 
-    /// Where it's let go picks the form: menu bar → deck, corner → tile, edge → pill, else card.
+    /// Where it's let go picks the form. In Auto: menu bar → deck, corner → tile, edge → pill,
+    /// elsewhere → card (or the closest wall's pill with "Stick to the closest wall").
+    /// A fixed view keeps its look and only moves.
     private func dropped() {
         let mouse = NSEvent.mouseLocation
         let frame = panel.frame
@@ -328,6 +371,12 @@ final class PanelController {
         }
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? currentScreen
         let visible = screen.visibleFrame
+        let center = NSPoint(x: frame.midX, y: frame.midY)
+
+        guard prefs.view == .auto else {
+            if let form = form(for: prefs.view, near: center, on: screen) { setForm(form, on: screen) }
+            return
+        }
 
         if mouse.y >= visible.maxY - 2 {
             prefs.formBeforeDeck = state.form
@@ -341,32 +390,137 @@ final class PanelController {
         let left = mouse.x - visible.minX, right = visible.maxX - mouse.x
         let bottom = mouse.y - visible.minY, top = visible.maxY - mouse.y
 
-        if prefs.snapToCorners, min(left, right) < cornerZone, min(bottom, top) < cornerZone {
-            let corner: ScreenCorner = switch (left < right, bottom < top) {
+        if min(left, right) < cornerZone, min(bottom, top) < cornerZone {
+            if let form = form(for: .tile, near: mouse, on: screen) { setForm(form, on: screen) }
+            return
+        }
+
+        if min(left, right, bottom) < edgeZone || prefs.position == .stick {
+            let keepTab: Bool = if case .tab = state.form { true } else { false }
+            if let form = form(for: keepTab ? .tab : .pill, near: center, on: screen) { setForm(form, on: screen) }
+            return
+        }
+
+        prefs.cardCenterX = center.x
+        prefs.cardCenterY = center.y
+        setForm(state.form == .cardMini ? .cardMini : .card, on: screen)
+    }
+
+    /// The form a view takes near a point: the closest wall for pill and tab, the closest corner
+    /// for the tile, and right there for card and art (or against the closest wall with "Stick").
+    private func form(for view: ViewChoice, near point: NSPoint, on screen: NSScreen) -> Form? {
+        let visible = screen.visibleFrame
+        let left = point.x - visible.minX, right = visible.maxX - point.x
+        let bottom = point.y - visible.minY, top = visible.maxY - point.y
+        let side: ScreenEdge = left <= right ? .left : .right
+        let wall: ScreenEdge = bottom < min(left, right) ? .bottom : side
+        let isTucked: Bool = if case .tucked = state.form { true } else { false }
+
+        switch view {
+        case .auto, .deck:
+            return nil
+        case .pill:
+            prefs.along = wall == .bottom ? point.x : point.y
+            return isTucked ? .tucked(wall) : .pill(wall)
+        case .tab:
+            prefs.along = point.y
+            return isTucked ? .tucked(side) : .tab(side)
+        case .tile:
+            let corner: ScreenCorner = switch (left <= right, bottom <= top) {
             case (true, true): .bottomLeft
             case (true, false): .topLeft
             case (false, true): .bottomRight
             case (false, false): .topRight
             }
-            setForm(.tile(corner), on: screen)
-            return
-        }
-
-        if prefs.snapToEdges, min(left, right, bottom) < edgeZone {
-            let edge: ScreenEdge = left < edgeZone && left <= right ? .left : right < edgeZone ? .right : .bottom
-            prefs.along = edge == .bottom ? frame.midX : frame.midY
-            let form: Form = switch state.form {
-            case .tucked: .tucked(edge)
-            case .tab where edge != .bottom: .tab(edge)
-            default: .pill(edge)
+            return .tile(corner)
+        case .card, .art:
+            let form: Form = view == .card ? .card : .cardMini
+            let size = Layout.windowSize(for: form)
+            var center = point
+            if prefs.position == .stick {
+                switch min(left, right, bottom, top) {
+                case left: center.x = visible.minX + size.width / 2
+                case right: center.x = visible.maxX - size.width / 2
+                case bottom: center.y = visible.minY + size.height / 2
+                default: center.y = visible.maxY - size.height / 2
+                }
             }
-            setForm(form, on: screen)
+            prefs.cardCenterX = center.x
+            prefs.cardCenterY = center.y
+            return form
+        }
+    }
+
+    // MARK: View settings
+
+    private func observeViewSettings() {
+        withObservationTracking {
+            _ = prefs.view
+            _ = prefs.position
+        } onChange: { [weak self] in
+            DispatchQueue.main.async {
+                self?.viewSettingsChanged()
+                self?.observeViewSettings()
+            }
+        }
+    }
+
+    /// The View or Position setting changed: switch the player over right away.
+    private func viewSettingsChanged() {
+        guard prefs.view != lastView || prefs.position != lastPosition else { return }
+        lastView = prefs.view
+        lastPosition = prefs.position
+
+        if prefs.view == .deck {
+            showDeck()
             return
         }
+        let screen = currentScreen
+        let frame = isVisible ? panel.frame : targetFrame(state.form, on: screen)
+        let center = NSPoint(x: frame.midX, y: frame.midY)
 
-        prefs.cardCenterX = frame.midX
-        prefs.cardCenterY = frame.midY
-        setForm(state.form == .cardMini ? .cardMini : .card, on: screen)
+        let target: Form?
+        if prefs.view == .auto {
+            // Auto keeps the current look, except a floating card sticks to a wall with "Stick".
+            let floating = state.form == .card || state.form == .cardMini
+            target = prefs.position == .stick && floating ? form(for: .pill, near: center, on: screen) : nil
+        } else {
+            target = form(for: prefs.view, near: center, on: screen)
+        }
+        guard let target, target != state.form else { return }
+
+        if state.form == .deck {
+            prefs.formBeforeDeck = nil
+            hide { [weak self] in
+                self?.setFormQuietly(target)
+                self?.show()
+            }
+        } else if isVisible {
+            setForm(target, on: screen)
+        } else {
+            setFormQuietly(target)
+            show()
+        }
+    }
+
+    // MARK: Tucked peek
+
+    private func tuckedHoverChanged(_ hovering: Bool) {
+        peekWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated { self?.setTuckedOut(hovering) }
+        }
+        peekWork = work
+        // Out quickly, back in after a short pause so it doesn't flicker.
+        DispatchQueue.main.asyncAfter(deadline: .now() + (hovering ? 0.08 : 0.7), execute: work)
+    }
+
+    private func setTuckedOut(_ out: Bool) {
+        guard case .tucked = state.form, isVisible, tuckedOut != out, case .idle = press else { return }
+        tuckedOut = out
+        animate(duration: 0.2) {
+            self.panel.animator().setFrame(self.targetFrame(self.state.form, on: self.currentScreen), display: true)
+        }
     }
 
     // MARK: Swipe to tuck
@@ -374,7 +528,7 @@ final class PanelController {
     /// Two-finger swipe into the edge tucks the pill or tab away (like dismissing a notification);
     /// swiping out again brings the pill back.
     func scrolled(_ event: NSEvent) {
-        guard let edge = state.form.edge else { return }
+        guard let edge = state.form.edge, [.auto, .pill, .tab].contains(prefs.view) else { return }
         if event.phase == .began { swipe = 0; swipeDone = false }
         guard event.phase == .began || event.phase == .changed, !swipeDone else { return }
 

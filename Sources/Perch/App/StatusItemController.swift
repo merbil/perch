@@ -1,7 +1,7 @@
 import AppKit
 
 /// Menu bar icon: four equaliser bars that move while music plays.
-/// Left click shows/hides Perch, right click opens the deck, Option-click opens a small menu.
+/// Left click opens the menu, right click opens the deck.
 @MainActor
 final class StatusItemController: NSObject {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -10,7 +10,6 @@ final class StatusItemController: NSObject {
 
     var onLeftClick: () -> Void = {}
     var onRightClick: () -> Void = {}
-    var isPerchVisible: () -> Bool = { false }
 
     var buttonFrame: NSRect? {
         guard let button = item.button, let window = button.window else { return nil }
@@ -53,44 +52,38 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func clicked() {
-        guard let event = NSApp.currentEvent else { return onLeftClick() }
-        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+        let event = NSApp.currentEvent
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
             onRightClick()
-        } else if event.modifierFlags.contains(.option) {
-            showMenu()
         } else {
             onLeftClick()
         }
     }
 
-    private func showMenu() {
-        let menu = NSMenu()
-        let toggle = NSMenuItem(title: isPerchVisible() ? "Hide Perch" : "Show Perch", action: #selector(menuToggle), keyEquivalent: "")
-        toggle.target = self
-        menu.addItem(toggle)
-        let deck = NSMenuItem(title: "Show Deck", action: #selector(menuDeck), keyEquivalent: "")
-        deck.target = self
-        menu.addItem(deck)
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Perch", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        item.menu = menu
-        item.button?.performClick(nil)
-        item.menu = nil
-    }
-
-    @objc private func menuToggle() { onLeftClick() }
-    @objc private func menuDeck() { onRightClick() }
-
     private static let resting: [Double] = [0.35, 0.65, 0.45, 0.8]
 
+    /// The logo's bars, with the bird riding the tallest bar as it moves.
     static func icon(levels: [Double]) -> NSImage {
-        let image = NSImage(size: NSSize(width: 18, height: 16), flipped: false) { _ in
+        let image = NSImage(size: NSSize(width: 22, height: 18), flipped: false) { _ in
             NSColor.black.setFill()
+            var lastTop: CGFloat = 0
             for (i, level) in levels.enumerated() {
-                let height = 2 + 11 * level
-                let bar = NSRect(x: 2.5 + Double(i) * 3.75, y: 2.5, width: 2.75, height: height)
+                let height = 2 + 7.5 * level
+                let bar = NSRect(x: 1.5 + Double(i) * 3.75, y: 1.5, width: 2.75, height: height)
                 NSBezierPath(roundedRect: bar, xRadius: 1, yRadius: 1).fill()
+                lastTop = bar.maxY
             }
+            // Bird: round body on the last bar, beak pointing right, eye punched out.
+            let body = NSRect(x: 11.6, y: lastTop + 0.3, width: 6.4, height: 5.4)
+            NSBezierPath(ovalIn: body).fill()
+            let beak = NSBezierPath()
+            beak.move(to: NSPoint(x: 17.4, y: body.midY + 1.2))
+            beak.line(to: NSPoint(x: 20.6, y: body.midY))
+            beak.line(to: NSPoint(x: 17.4, y: body.midY - 1.2))
+            beak.close()
+            beak.fill()
+            NSGraphicsContext.current?.compositingOperation = .clear
+            NSBezierPath(ovalIn: NSRect(x: 15.2, y: body.midY + 0.2, width: 1.3, height: 1.3)).fill()
             return true
         }
         image.isTemplate = true

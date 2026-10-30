@@ -1,5 +1,16 @@
 # Perch status
 
+## 2026-10-30, round 2 (not committed yet)
+
+- The tab's height now follows the song title.
+- Tucked art peeks 22 px out of the edge and slides out on hover.
+- Left-click on the menu bar icon opens the new Perch menu: show switch, View (Auto, Pill, Tab, Tile, Card, Art, Deck), Position (stick to the closest wall / stay where I drop it), 12 accents including From Cover Art, Music, How Perch works, Quit.
+- Tutorial: 4 steps, shown on first launch and from the menu.
+- Snapshots of the menu and each tutorial step are in design/snapshots.
+
+Not tried by hand yet: the menu closing on outside clicks, the peek timing, view switching while the deck is out, the cover-art colour against real Spotify art.
+
+
 ## 2026-10-30, overnight: v0.1 first build
 
 Built, not tried by hand yet. Nothing committed (git is set up, no commits).

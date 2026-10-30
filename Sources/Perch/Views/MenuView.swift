@@ -104,10 +104,9 @@ struct MenuView: View {
 
             UpdateRow()
 
-            HStack {
-                TextButton(title: "How Perch works", action: actions.showTutorial)
-                Spacer()
-                TextButton(title: "Quit", muted: true, action: actions.quit)
+            HStack(spacing: 8) {
+                FooterButton(symbol: "questionmark", title: "How it works", action: actions.showTutorial)
+                FooterButton(symbol: "power", title: "Quit", action: actions.quit)
             }
         }
         .padding(16)
@@ -300,30 +299,76 @@ private struct UpdateRow: View {
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Palette.ink, lineWidth: 2))
         } else {
             HStack {
-                Text("v\(updater.currentVersion)").font(.perch(12, .bold)).foregroundStyle(Palette.muted)
-                Spacer(minLength: 16)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Perch \(updater.currentVersion)").font(.perch(13)).foregroundStyle(Palette.ink)
+                    HStack(spacing: 5) {
+                        Circle().fill(statusColor).frame(width: 7, height: 7)
+                        Text(statusText).font(.perch(11, .bold)).foregroundStyle(Palette.muted)
+                    }
+                }
+                Spacer()
                 Button {
                     Task { await updater.check() }
                 } label: {
-                    Marquee(text: checkTitle.uppercased(), font: .perch(12), nsFont: .perch(12),
-                            color: updater.state == .checking ? Palette.muted : Palette.ink, gap: 30)
-                        .frame(maxWidth: 170)
-                        .frame(minHeight: 28)
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .black))
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: 30, height: 30)
+                        .background(RoundedRectangle(cornerRadius: 9).fill(Palette.paper))
+                        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Palette.ink, lineWidth: 2))
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ArcadeButtonStyle(shape: AnyShape(RoundedRectangle(cornerRadius: 9)), shadow: 2))
                 .disabled(updater.state == .checking)
+                .opacity(updater.state == .checking ? 0.5 : 1)
+                .help("Check for updates")
+                .accessibilityLabel("Check for updates")
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Palette.field))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.ink, lineWidth: 2))
         }
     }
 
-    private var checkTitle: String {
+    private var statusText: String {
         switch updater.state {
-        case .checking: "Checking…"
-        case .upToDate: "Up to date · Recheck"
-        case .failed: "Couldn't check · Retry"
-        default: "Check for updates"
+        case .checking: "Checking for updates…"
+        case .upToDate: "Up to date"
+        case .failed: "Couldn't check for updates"
+        default: "Checks GitHub once a day"
         }
+    }
+
+    private var statusColor: Color {
+        switch updater.state {
+        case .upToDate: Color(hex: 0x3DBE6B)
+        case .failed: Palette.coral
+        default: Palette.muted
+        }
+    }
+}
+
+/// One of the two buttons at the bottom of the menu.
+private struct FooterButton: View {
+    var symbol: String
+    var title: String
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: symbol).font(.system(size: 10, weight: .black))
+                Text(title.uppercased()).font(.perch(11))
+            }
+            .foregroundStyle(Palette.ink)
+            .frame(maxWidth: .infinity)
+            .frame(height: 34)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Palette.paper))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Palette.ink, lineWidth: 2))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(ArcadeButtonStyle(shape: AnyShape(RoundedRectangle(cornerRadius: 10)), shadow: 2))
     }
 }
 

@@ -30,6 +30,7 @@ enum Palette {
     static let lime = Color(hex: 0xC6F36B)
     static let pink = Color(hex: 0xFF5FA2)
     static let sun = Color(hex: 0xFFD23F)
+    static let coral = Color(hex: 0xFF6B6B)
 }
 
 enum Accent: String, CaseIterable, Identifiable {

@@ -1,5 +1,10 @@
 # Perch release notes
 
+## Next (unreleased)
+
+### Changed
+- The bottom of the menu is tidier. Your version and whether it's up to date sit in their own box with a small check button, and How it works and Quit are proper buttons now.
+
 ## 0.2.1 (build 3): 2026-10-30
 
 ### Added

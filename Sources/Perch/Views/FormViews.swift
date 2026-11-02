@@ -70,7 +70,14 @@ struct PillView: View {
             CoverArt(size: 50, radius: 12)
             VStack(alignment: .leading, spacing: 1) {
                 ScrollingLine(text: player.title, size: 15)
-                ScrollingLine(text: subtitle, size: 12, isTitle: false)
+                // The time ticks every second, so it sits apart from the scrolling artist line.
+                HStack(spacing: 6) {
+                    ScrollingLine(text: player.artist, size: 12, isTitle: false)
+                    if let time {
+                        Text(time).font(.perch(12, .bold)).foregroundStyle(Palette.muted)
+                            .monospacedDigit().fixedSize()
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 4) {
@@ -86,9 +93,9 @@ struct PillView: View {
         .surface(flat: [edge.side], radius: 22)
     }
 
-    private var subtitle: String {
-        guard let track = player.track, !player.isIdle else { return player.artist }
-        return "\(track.artist) · \(player.position.clock) / \(track.duration.clock)"
+    private var time: String? {
+        guard let track = player.track, !player.isIdle else { return nil }
+        return "\(player.position.clock) / \(track.duration.clock)"
     }
 }
 

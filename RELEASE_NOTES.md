@@ -1,5 +1,14 @@
 # Perch release notes
 
+## 0.2.5 (build 7): 2026-11-03
+
+### Added
+- The pill and the tab have resize grips too. Push the pill's outer end back into the edge to tuck it, or pull its top or bottom to get the tab. On the tab, pull the outer side for the pill, or push the top or bottom back in to tuck it.
+
+### Fixed
+- Scrolling titles and artist names don't jump any more. Perch now times the scroll from the text as it's actually drawn, and in the pill the time sits next to the artist on its own, so the name isn't restarted every second.
+- Long titles start scrolling from the beginning when the song changes.
+
 ## 0.2.4 (build 6): 2026-11-02
 
 ### Fixed

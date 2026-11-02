@@ -237,8 +237,12 @@ struct ChipButton: View {
 }
 
 /// Title that scrolls when it doesn't fit, like Winamp's.
+/// The loop is timed from the text's real drawn width, so wrapping around is seamless.
 struct Marquee: View {
     @Environment(Preferences.self) private var prefs
+    /// Each new text starts scrolling from its beginning.
+    @State private var startedAt = Date()
+    @State private var textWidth: CGFloat = 0
     var text: String
     var font: Font
     var nsFont: NSFont
@@ -247,9 +251,8 @@ struct Marquee: View {
     var speed: CGFloat = 28
 
     var body: some View {
-        let textWidth = (text as NSString).size(withAttributes: [.font: nsFont]).width
         GeometryReader { geo in
-            if textWidth <= geo.size.width {
+            if textWidth <= geo.size.width + 0.5 {
                 label
             } else if prefs.reduceMotion {
                 // Still: the end fades out instead of moving (and never turns into "…").
@@ -265,15 +268,25 @@ struct Marquee: View {
                     let cycle = textWidth + gap
                     let pause: Double = 1.6
                     let loop = Double(cycle / speed) + pause
-                    let elapsed = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: loop)
+                    let elapsed = max(0, timeline.date.timeIntervalSince(startedAt)).truncatingRemainder(dividingBy: loop)
                     let offset = CGFloat(max(0, elapsed - pause)) * speed
                     HStack(spacing: gap) { label; label }
                         .offset(x: -offset)
+                        .transaction { $0.animation = nil }
                 }
             }
         }
         .frame(height: nsFont.boundingRectForFont.height)
         .clipped()
+        // The width as SwiftUI draws it (an NSFont estimate was a few points off, which made it jump).
+        .background(alignment: .leading) {
+            label.hidden().background(GeometryReader { proxy in
+                Color.clear
+                    .onAppear { textWidth = proxy.size.width }
+                    .onChange(of: proxy.size.width) { _, width in textWidth = width }
+            })
+        }
+        .onChange(of: text) { startedAt = Date() }
         .accessibilityLabel(text)
     }
 

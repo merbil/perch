@@ -26,6 +26,10 @@ final class PerchPanel: NSPanel {
 
     override func sendEvent(_ event: NSEvent) {
         guard let controller else { return super.sendEvent(event) }
+        if GestureLog.gestureTypes.contains(event.type) {
+            GestureLog.write(GestureLog.describe(event, from: "panel"))
+            if event.type == .magnify { MainActor.assumeIsolated { controller.pinched(event) } }
+        }
         switch event.type {
         case .leftMouseDown:
             // Hold the press until we know whether it's a click or a drag.
@@ -97,7 +101,8 @@ final class PanelController {
 
     private(set) var isVisible = false
 
-    private enum ResizeAxis { case wider, taller }
+    /// Which edge of the pill, tab or tucked art is being pulled. `outer` is the side facing away from the screen edge.
+    private enum ResizeAxis { case top, bottom, outer }
     private enum Press { case idle, pending, moving, resizing(ResizeAxis), finished }
     private var press: Press = .idle
     private var pressMouse = NSPoint.zero
@@ -133,11 +138,17 @@ final class PanelController {
 
         // Pinch gestures also only go to the active app. A global monitor sees the ones aimed at
         // whatever app is in front; the local one covers the times Perch is active.
-        NSEvent.addGlobalMonitorForEvents(matching: .magnify) { [weak self] event in
-            MainActor.assumeIsolated { self?.pinchIfOver(event) }
+        let gestures: NSEvent.EventTypeMask = [.magnify, .smartMagnify, .rotate, .swipe, .beginGesture, .endGesture, .gesture]
+        NSEvent.addGlobalMonitorForEvents(matching: gestures) { [weak self] event in
+            GestureLog.write(GestureLog.describe(event, from: "global"))
+            if event.type == .magnify { MainActor.assumeIsolated { self?.pinchIfOver(event) } }
         }
-        NSEvent.addLocalMonitorForEvents(matching: .magnify) { [weak self] event in
-            MainActor.assumeIsolated { self?.pinchIfOver(event) }
+        NSEvent.addLocalMonitorForEvents(matching: gestures) { [weak self] event in
+            // Events aimed at the panel itself are handled in its sendEvent.
+            if event.window !== self?.panel {
+                GestureLog.write(GestureLog.describe(event, from: "local"))
+                if event.type == .magnify { MainActor.assumeIsolated { self?.pinchIfOver(event) } }
+            }
             return event
         }
 
@@ -368,28 +379,64 @@ final class PanelController {
     }
 
     /// The tucked art can be resized from its free sides: wider → pill, taller → tab.
+    /// The pill, tab and tucked art can be resized from their free sides (see `resized`).
     private func resizeZone(at point: NSPoint) -> ResizeAxis? {
-        guard case .tucked(let edge) = state.form else { return nil }
-        let content = NSRect(origin: .zero, size: panel.frame.size)
-        let zone: CGFloat = 20
-        if edge != .bottom, point.y > content.maxY - zone || point.y < content.minY + zone { return .taller }
+        guard let edge = state.form.edge else { return nil }
+        let insets = Layout.insets(for: state.form)
+        let size = panel.frame.size
+        let content = NSRect(x: insets.leading, y: insets.bottom,
+                             width: size.width - insets.leading - insets.trailing,
+                             height: size.height - insets.top - insets.bottom)
+        let zone: CGFloat = if case .tucked = state.form { 20 } else { 12 }
+        guard content.insetBy(dx: -4, dy: -4).contains(point) else { return nil }
         switch edge {
-        case .left where point.x > content.maxX - zone: return .wider
-        case .right where point.x < content.minX + zone: return .wider
-        case .bottom where point.y > content.maxY - zone: return .wider
-        default: return nil
+        case .left where point.x > content.maxX - zone: return .outer
+        case .right where point.x < content.minX + zone: return .outer
+        case .bottom where point.y > content.maxY - zone: return .outer
+        default: break
+        }
+        guard edge != .bottom else { return nil }
+        if point.y > content.maxY - zone { return .top }
+        if point.y < content.minY + zone { return .bottom }
+        return nil
+    }
+
+    /// Pulling a grip: outward makes it bigger (tucked → pill or tab, tab → pill, pill top/bottom → tab),
+    /// pushing back in makes it smaller (pill or tab → tucked).
+    private func resized(_ grip: ResizeAxis, dx: CGFloat, dy: CGFloat) -> Form? {
+        guard let edge = state.form.edge else { return nil }
+        let outward: CGFloat = switch edge {
+        case .left: dx
+        case .right: -dx
+        case .bottom: dy
+        }
+        let grow: CGFloat = grip == .top ? dy : -dy
+        let threshold: CGFloat = 24
+        switch (state.form, grip) {
+        case (.tucked, .outer) where outward > threshold:
+            return prefs.view == .tab && edge != .bottom ? .tab(edge) : .pill(edge)
+        case (.tucked, .top), (.tucked, .bottom):
+            return grow > threshold && prefs.view != .pill ? .tab(edge) : (grow > threshold ? .pill(edge) : nil)
+        case (.tab, .outer) where outward > threshold:
+            return .pill(edge)
+        case (.tab, .top), (.tab, .bottom):
+            return grow < -threshold ? .tucked(edge) : nil
+        case (.pill, .outer) where outward < -threshold:
+            return .tucked(edge)
+        case (.pill, .top), (.pill, .bottom):
+            return grow > threshold ? .tab(edge) : nil
+        default:
+            return nil
         }
     }
 
     /// Resize arrows over the tucked art's grips, so it's clear they can be pulled.
     private func resizeCursor(at point: NSPoint) -> NSCursor? {
-        if case .resizing(let axis) = press { return axis == .taller ? .resizeUpDown : .resizeLeftRight }
-        guard case .idle = press else { return nil }
-        switch resizeZone(at: point) {
-        case .taller: return .resizeUpDown
-        case .wider: return .resizeLeftRight
-        case nil: return nil
-        }
+        let grip: ResizeAxis?
+        if case .resizing(let pulled) = press { grip = pulled } else if case .idle = press { grip = resizeZone(at: point) } else { grip = nil }
+        guard let grip else { return nil }
+        let sideways = grip == .outer && state.form.edge != .bottom
+        return sideways ? .resizeLeftRight : .resizeUpDown
     }
 
     private func pinchIfOver(_ event: NSEvent) {
@@ -408,6 +455,7 @@ final class PanelController {
         if event.phase == .ended || event.phase == .cancelled { NSCursor.arrow.set(); return }
         guard !pinchDone else { return }
         pinch += event.magnification
+        GestureLog.write("pinch total=\(pinch) form=\(state.form)")
 
         if case .tucked = state.form { NSCursor.resizeUpDown.set() }
         let opening = pinch > 0.25, closing = pinch < -0.2
@@ -454,17 +502,10 @@ final class PanelController {
             } else {
                 panel.setFrameOrigin(NSPoint(x: pressOrigin.x + dx, y: pressOrigin.y + dy))
             }
-        case .resizing(let axis):
-            guard case .tucked(let edge) = state.form else { return }
-            let amount: CGFloat
-            switch axis {
-            case .taller: amount = abs(dy)
-            case .wider: amount = edge == .left ? dx : edge == .right ? -dx : dy
-            }
-            if amount > 24 {
+        case .resizing(let grip):
+            if let form = resized(grip, dx: dx, dy: dy) {
                 press = .finished
-                let tab = edge != .bottom && (prefs.view == .tab || (prefs.view != .pill && axis == .taller))
-                morph(to: tab ? .tab(edge) : .pill(edge))
+                morph(to: form)
             }
         case .idle, .finished:
             break

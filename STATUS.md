@@ -1,5 +1,12 @@
 # Perch status
 
+## 2026-11-02: waiting on Mert's pinch test at home
+
+- 0.2.4 released. This Mac had stayed on 0.2.3 (Mert tested on his work Mac).
+- Uncommitted-to-release, committed locally: resize grips on the pill and tab (outer end pushed in = tucked, top/bottom pulled = tab; tab outer = pill, tab top/bottom pushed in = tucked) and opt-in gesture logging (`defaults write com.merterbil.perch logGestures -bool YES` → ~/Library/Logs/Perch/gestures.log).
+- That build (version 0.2.4) is installed in /Applications on this Mac with logging on.
+- Next: Mert pinches on the card and tucked art at home (once with another app in front, once after clicking the card). Read the log: if nothing arrives, gestures don't reach an inactive app or global monitors, and pinch needs another route (key panel on click, or drop it).
+
 ## 2026-10-30: 0.2.1 released (dark mode, right-click hides, pinch, reduce motion)
 
 First real test of the in-app update: Mert clicks Update in installed 0.2.0.

@@ -1,5 +1,12 @@
 # Perch release notes
 
+## 0.2.4 (build 6): 2026-11-02
+
+### Fixed
+- Pinching works now, also when another app is in front. Before, macOS only sent the pinch to Perch while Perch itself was the active app, which it almost never is.
+- The resize arrows on the tucked art show up every time you point at its edges, not only now and then.
+- Swiping the pill into the edge and back out looks right. The old look slides into the edge and the new one slides back out, instead of the content jumping while the window changed size.
+
 ## 0.2.3 (build 5): 2026-10-30
 
 ### Added

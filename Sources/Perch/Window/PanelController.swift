@@ -45,13 +45,6 @@ final class PerchPanel: NSPanel {
             return
         case .scrollWheel:
             MainActor.assumeIsolated { controller.scrolled(event) }
-        case .magnify:
-            MainActor.assumeIsolated { controller.pinched(event) }
-        case .mouseMoved:
-            super.sendEvent(event)
-            // After SwiftUI, so the resize cursor isn't reset straight away.
-            MainActor.assumeIsolated { controller.pointerMoved(event) }
-            return
         default:
             break
         }
@@ -59,8 +52,38 @@ final class PerchPanel: NSPanel {
     }
 }
 
-private final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+/// Perch is never the active app (so it never steals focus), and macOS only sends plain mouse
+/// movement to the active app's windows. An always-on tracking area gets it anyway, for the
+/// resize arrows over the tucked art.
+private final class PerchHostingView<Content: View>: NSHostingView<Content> {
+    var cursorFor: (NSPoint) -> NSCursor? = { _ in nil }
+    private var area: NSTrackingArea?
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let area { removeTrackingArea(area) }
+        let options: NSTrackingArea.Options = [.mouseMoved, .mouseEnteredAndExited, .cursorUpdate, .activeAlways, .inVisibleRect]
+        let new = NSTrackingArea(rect: .zero, options: options, owner: self, userInfo: nil)
+        addTrackingArea(new)
+        area = new
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        // After SwiftUI, so its own cursor doesn't win.
+        if let cursor = cursorFor(event.locationInWindow) { cursor.set() }
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        if let cursor = cursorFor(event.locationInWindow) { cursor.set() } else { super.cursorUpdate(with: event) }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        NSCursor.arrow.set()
+    }
 }
 
 @MainActor
@@ -85,6 +108,7 @@ final class PanelController {
     /// Tucked art is mostly inside the edge until the pointer comes near.
     private var tuckedOut = false
     private var peekWork: DispatchWorkItem?
+    private var morphing = false
     private var lastView: ViewChoice
     private var lastPosition: PositionChoice
 
@@ -100,8 +124,22 @@ final class PanelController {
             .environment(state)
             .environment(prefs)
             .environment(player)
-        panel.contentView = FirstMouseHostingView(rootView: root)
+        let host = PerchHostingView(rootView: root)
+        panel.contentView = host
         panel.controller = self
+        host.cursorFor = { [weak self] point in
+            MainActor.assumeIsolated { self?.resizeCursor(at: point) }
+        }
+
+        // Pinch gestures also only go to the active app. A global monitor sees the ones aimed at
+        // whatever app is in front; the local one covers the times Perch is active.
+        NSEvent.addGlobalMonitorForEvents(matching: .magnify) { [weak self] event in
+            MainActor.assumeIsolated { self?.pinchIfOver(event) }
+        }
+        NSEvent.addLocalMonitorForEvents(matching: .magnify) { [weak self] event in
+            MainActor.assumeIsolated { self?.pinchIfOver(event) }
+            return event
+        }
 
         state.minimise = { [weak self] in self?.switchCard(to: .cardMini) }
         state.expand = { [weak self] in self?.switchCard(to: .card) }
@@ -215,6 +253,30 @@ final class PanelController {
         }
     }
 
+    /// Between two looks on the same edge (pill, tab, tucked art): the old one slides into the
+    /// edge, the new one slides back out. Swapping in place made the content jump.
+    private func morph(to form: Form) {
+        let old = state.form
+        guard let edge = old.edge, form.edge == edge, isVisible, !prefs.reduceMotion, !morphing else {
+            setForm(form)
+            return
+        }
+        morphing = true
+        let screen = currentScreen
+        animate(duration: 0.14, {
+            self.panel.animator().setFrame(self.offscreen(self.panel.frame, for: old), display: true)
+        }, completion: {
+            self.setFormQuietly(form)
+            let target = self.targetFrame(form, on: screen)
+            self.panel.setFrame(self.offscreen(target, for: form), display: true)
+            self.animate(duration: 0.24, {
+                self.panel.animator().setFrame(target, display: true)
+            }, completion: {
+                self.morphing = false
+            })
+        })
+    }
+
     private func setFormQuietly(_ form: Form) {
         state.form = form
         prefs.form = form
@@ -309,7 +371,7 @@ final class PanelController {
     private func resizeZone(at point: NSPoint) -> ResizeAxis? {
         guard case .tucked(let edge) = state.form else { return nil }
         let content = NSRect(origin: .zero, size: panel.frame.size)
-        let zone: CGFloat = 16
+        let zone: CGFloat = 20
         if edge != .bottom, point.y > content.maxY - zone || point.y < content.minY + zone { return .taller }
         switch edge {
         case .left where point.x > content.maxX - zone: return .wider
@@ -320,13 +382,19 @@ final class PanelController {
     }
 
     /// Resize arrows over the tucked art's grips, so it's clear they can be pulled.
-    func pointerMoved(_ event: NSEvent) {
-        guard case .idle = press else { return }
-        switch resizeZone(at: event.locationInWindow) {
-        case .taller: NSCursor.resizeUpDown.set()
-        case .wider: NSCursor.resizeLeftRight.set()
-        case nil: if case .tucked = state.form { NSCursor.arrow.set() }
+    private func resizeCursor(at point: NSPoint) -> NSCursor? {
+        if case .resizing(let axis) = press { return axis == .taller ? .resizeUpDown : .resizeLeftRight }
+        guard case .idle = press else { return nil }
+        switch resizeZone(at: point) {
+        case .taller: return .resizeUpDown
+        case .wider: return .resizeLeftRight
+        case nil: return nil
         }
+    }
+
+    private func pinchIfOver(_ event: NSEvent) {
+        guard isVisible, panel.frame.contains(NSEvent.mouseLocation) else { return }
+        pinched(event)
     }
 
     // MARK: Pinch
@@ -363,7 +431,7 @@ final class PanelController {
         }
         if let target {
             pinchDone = true
-            setForm(target)
+            morph(to: target)
         }
     }
 
@@ -396,7 +464,7 @@ final class PanelController {
             if amount > 24 {
                 press = .finished
                 let tab = edge != .bottom && (prefs.view == .tab || (prefs.view != .pill && axis == .taller))
-                setForm(tab ? .tab(edge) : .pill(edge))
+                morph(to: tab ? .tab(edge) : .pill(edge))
             }
         case .idle, .finished:
             break
@@ -583,7 +651,7 @@ final class PanelController {
     }
 
     private func setTuckedOut(_ out: Bool) {
-        guard case .tucked = state.form, isVisible, tuckedOut != out, case .idle = press else { return }
+        guard case .tucked = state.form, isVisible, tuckedOut != out, case .idle = press, !morphing else { return }
         tuckedOut = out
         animate(duration: 0.2) {
             self.panel.animator().setFrame(self.targetFrame(self.state.form, on: self.currentScreen), display: true)
@@ -612,9 +680,9 @@ final class PanelController {
 
         switch state.form {
         case .pill, .tab:
-            if swipe > 40 { swipeDone = true; setForm(.tucked(edge)) }
+            if swipe > 40 { swipeDone = true; morph(to: .tucked(edge)) }
         case .tucked:
-            if swipe < -40 { swipeDone = true; setForm(.pill(edge)) }
+            if swipe < -40 { swipeDone = true; morph(to: .pill(edge)) }
         default:
             break
         }

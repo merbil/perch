@@ -50,8 +50,19 @@ final class PlayerModel {
         }
     }
 
+    @ObservationIgnored private var isReading = false
+
     func refresh() {
-        let reading = source.read()
+        // One read at a time; Spotify answers on a background queue.
+        guard !isReading else { return }
+        isReading = true
+        source.read { [weak self] reading in
+            self?.isReading = false
+            self?.apply(reading)
+        }
+    }
+
+    private func apply(_ reading: SourceReading) {
         state = reading.state
         position = reading.position
         // Keep the last track around when the app stops, so the idle view isn't empty.

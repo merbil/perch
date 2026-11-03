@@ -174,7 +174,7 @@ enum Snapshot {
 private final class ClosedSource: MusicSource {
     let name = "Spotify"
     let changeNotification: String? = nil
-    func read() -> SourceReading { SourceReading(state: .notRunning, track: nil, position: 0) }
+    func read(_ done: @escaping @MainActor (SourceReading) -> Void) { done(SourceReading(state: .notRunning, track: nil, position: 0)) }
     func playPause() {}
     func next() {}
     func previous() {}

@@ -23,8 +23,8 @@ final class DemoSource: MusicSource {
         return raw.truncatingRemainder(dividingBy: track.duration)
     }
 
-    func read() -> SourceReading {
-        SourceReading(state: playing ? .playing : .paused, track: tracks[index], position: position)
+    func read(_ done: @escaping @MainActor (SourceReading) -> Void) {
+        done(SourceReading(state: playing ? .playing : .paused, track: tracks[index], position: position))
     }
 
     func playPause() {

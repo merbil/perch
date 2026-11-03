@@ -2,6 +2,9 @@ import AppKit
 
 /// Talks to Spotify through AppleScript. Never launches Spotify on its own:
 /// every script is guarded by a running check, except Play, which opens it on purpose.
+///
+/// Scripts run on a background queue. A Spotify script takes long enough to stall the main thread,
+/// and doing that once a second made the scrolling titles stutter.
 @MainActor
 final class SpotifySource: MusicSource {
     nonisolated static let bundleID = "com.spotify.client"
@@ -9,12 +12,17 @@ final class SpotifySource: MusicSource {
     let name = "Spotify"
     let changeNotification: String? = "com.spotify.client.PlaybackStateChanged"
 
+    /// One queue for every script: NSAppleScript isn't meant for several threads at once.
+    private nonisolated static let queue = DispatchQueue(label: "com.merterbil.perch.spotify", qos: .userInitiated)
+    /// Compiled once, used only on `queue`.
+    private nonisolated(unsafe) static var compiled: [String: NSAppleScript] = [:]
+
     private var isRunning: Bool {
         !NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleID).isEmpty
     }
 
     // One line per field, so titles with commas survive.
-    private static let readScript = """
+    private nonisolated static let readScript = """
     tell application id "com.spotify.client"
         set s to player state as string
         if s is "stopped" then return s
@@ -23,13 +31,21 @@ final class SpotifySource: MusicSource {
     end tell
     """
 
-    func read() -> SourceReading {
-        guard isRunning else { return SourceReading(state: .notRunning, track: nil, position: 0) }
-        guard let output = run(Self.readScript) else { return SourceReading(state: .stopped, track: nil, position: 0) }
-        return Self.parse(output)
+    func read(_ done: @escaping @MainActor (SourceReading) -> Void) {
+        guard isRunning else {
+            done(SourceReading(state: .notRunning, track: nil, position: 0))
+            return
+        }
+        Self.queue.async {
+            let reading = Self.execute(Self.readScript).map(Self.parse)
+                ?? SourceReading(state: .stopped, track: nil, position: 0)
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { done(reading) }
+            }
+        }
     }
 
-    static func parse(_ output: String) -> SourceReading {
+    nonisolated static func parse(_ output: String) -> SourceReading {
         let lines = output.components(separatedBy: "\n")
         let state: PlaybackState = switch lines.first {
         case "playing": .playing
@@ -49,13 +65,13 @@ final class SpotifySource: MusicSource {
     }
 
     /// AppleScript formats reals with the user's locale ("12,5" in Turkish or German).
-    private static func number(_ text: String) -> Double? {
+    private nonisolated static func number(_ text: String) -> Double? {
         Double(text.replacingOccurrences(of: ",", with: "."))
     }
 
     func playPause() {
         if isRunning {
-            run(#"tell application id "com.spotify.client" to playpause"#)
+            send(#"tell application id "com.spotify.client" to playpause"#)
         } else {
             launchAndPlay()
         }
@@ -63,12 +79,12 @@ final class SpotifySource: MusicSource {
 
     func next() {
         guard isRunning else { return }
-        run(#"tell application id "com.spotify.client" to next track"#)
+        send(#"tell application id "com.spotify.client" to next track"#)
     }
 
     func previous() {
         guard isRunning else { return }
-        run(#"tell application id "com.spotify.client" to previous track"#)
+        send(#"tell application id "com.spotify.client" to previous track"#)
     }
 
     private func launchAndPlay() {
@@ -77,20 +93,34 @@ final class SpotifySource: MusicSource {
         config.activates = false
         NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in
             // Spotify needs a moment before it answers scripts.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
-                self?.run(#"tell application id "com.spotify.client" to play"#)
+            Self.queue.asyncAfter(deadline: .now() + 2.5) {
+                _ = Self.execute(#"tell application id "com.spotify.client" to play"#)
             }
         }
     }
 
-    @discardableResult
-    private func run(_ source: String) -> String? {
+    private func send(_ source: String) {
+        Self.queue.async { _ = Self.execute(source) }
+    }
+
+    /// Runs on `queue` only.
+    private nonisolated static func execute(_ source: String) -> String? {
+        let script: NSAppleScript
+        if let cached = compiled[source] {
+            script = cached
+        } else {
+            guard let fresh = NSAppleScript(source: source) else { return nil }
+            var compileError: NSDictionary?
+            fresh.compileAndReturnError(&compileError)
+            compiled[source] = fresh
+            script = fresh
+        }
         var error: NSDictionary?
-        let result = NSAppleScript(source: source)?.executeAndReturnError(&error)
+        let result = script.executeAndReturnError(&error)
         if let error {
             NSLog("Perch: Spotify script failed: \(error)")
             return nil
         }
-        return result?.stringValue
+        return result.stringValue
     }
 }

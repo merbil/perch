@@ -1,5 +1,10 @@
 # Perch release notes
 
+## 0.2.6 (build 8): 2026-11-03
+
+### Fixed
+- Scrolling titles and artist names move smoothly now. Perch asked Spotify for the current song once a second in a way that paused everything for a moment, which made the text stop and go. It asks in the background now.
+
 ## 0.2.5 (build 7): 2026-11-03
 
 ### Added

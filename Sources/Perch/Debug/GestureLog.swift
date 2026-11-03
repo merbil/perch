@@ -1,10 +1,10 @@
 import AppKit
 
-/// Writes trackpad gesture events to ~/Library/Logs/Perch/gestures.log, only while
-/// `defaults write com.merterbil.perch logGestures -bool YES` is set. For finding out
-/// which gestures actually reach Perch.
+/// Writes trackpad gesture events to ~/Library/Logs/Perch/gestures.log, for finding out which
+/// gestures actually reach Perch. Temporarily on by default while pinch is being investigated;
+/// `defaults write com.merterbil.perch logGestures -bool NO` turns it off. Remove once pinch works.
 enum GestureLog {
-    static var isOn: Bool { UserDefaults.standard.bool(forKey: "logGestures") }
+    static var isOn: Bool { UserDefaults.standard.object(forKey: "logGestures") as? Bool ?? true }
 
     private static let url: URL = {
         let folder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Perch")

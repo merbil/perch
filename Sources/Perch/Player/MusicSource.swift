@@ -31,7 +31,8 @@ protocol MusicSource: AnyObject {
     var name: String { get }
     /// Name of the distributed notification the app posts when playback changes, if any.
     var changeNotification: String? { get }
-    func read() -> SourceReading
+    /// Calls back on the main actor; may be right away, or after the app has answered.
+    func read(_ done: @escaping @MainActor (SourceReading) -> Void)
     func playPause()
     func next()
     func previous()

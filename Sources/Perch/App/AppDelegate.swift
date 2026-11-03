@@ -52,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.panel.toggle()
         }
         panel.statusButtonFrame = { [weak self] in self?.statusItem.buttonFrame }
+        panel.openStage = { [weak self] in self?.stage.open() }
         player.onRefresh = { [weak self] in
             self?.statusItem.update()
             self?.panel.playerChanged()

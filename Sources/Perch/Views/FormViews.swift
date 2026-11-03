@@ -219,7 +219,7 @@ struct CardView: View {
                         .background(RoundedRectangle(cornerRadius: 6).fill(Palette.ink))
                         .padding(.top, 4)
                 }
-                .padding(.trailing, 24)
+                .padding(.trailing, 56)
                 Spacer(minLength: 0)
             }
             VStack(spacing: 4) {
@@ -250,8 +250,11 @@ struct CardView: View {
         .padding(14)
         .frame(width: 300, height: 236)
         .overlay(alignment: .topTrailing) {
-            ChipButton(symbol: "arrow.down.right.and.arrow.up.left", label: "Shrink to album art") { state.minimise() }
-                .padding(10)
+            HStack(spacing: 6) {
+                ChipButton(symbol: "tv", label: "Open Stage, the big window") { state.openStage() }
+                ChipButton(symbol: "arrow.down.right.and.arrow.up.left", label: "Shrink to album art") { state.minimise() }
+            }
+            .padding(10)
         }
         .surface(radius: 22)
     }

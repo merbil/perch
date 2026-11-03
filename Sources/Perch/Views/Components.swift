@@ -18,6 +18,7 @@ final class PanelState {
     @ObservationIgnored var rollIn: () -> Void = {}
     @ObservationIgnored var showDeck: () -> Void = {}
     @ObservationIgnored var hide: () -> Void = {}
+    @ObservationIgnored var openStage: () -> Void = {}
 
     init(form: Form) {
         self.form = form

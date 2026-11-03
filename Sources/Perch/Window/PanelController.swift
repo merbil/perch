@@ -99,6 +99,8 @@ final class PanelController {
     private let player: PlayerModel
     /// Where the menu bar icon is, for hanging the deck under it.
     var statusButtonFrame: () -> NSRect? = { nil }
+    /// The card's Stage button. Set up by AppDelegate.
+    var openStage: () -> Void = {}
 
     private(set) var isVisible = false
 
@@ -144,6 +146,7 @@ final class PanelController {
         // running the menu bar clock stopped opening Notification Center.
 
         state.minimise = { [weak self] in self?.switchCard(to: .cardMini) }
+        state.openStage = { [weak self] in self?.openStage() }
         state.expand = { [weak self] in self?.switchCard(to: .card) }
         state.tuckedHover = { [weak self] in self?.tuckedHoverChanged($0) }
         observeViewSettings()

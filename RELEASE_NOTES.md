@@ -6,6 +6,7 @@
 - Stage, a big Perch window. Turn it on under Stage in the menu, or with the screen button on the card. Make it any size, tile it next to another app, or go full screen with the green button. The layout follows the window: just the art when it's small, art and song side by side when it's wide, stacked when it's tall, and dark with the cover's color behind it when it's big.
 - In Stage, click or drag the bar to jump around in the song, and turn shuffle and repeat on or off. Click the album name to open the song in Spotify.
 - The controls and the window buttons fade out when you stop moving the mouse, and come back when you move it.
+- In Auto, a frosted shape shows where Perch will land while you drag it, like macOS's own window tiling.
 - Control-Command-P opens and closes Stage from any app.
 - Open at login: a switch in the menu starts Perch with your Mac.
 - If macOS blocks Perch from controlling Spotify, a popup says so and opens the right page in System Settings, instead of Perch just showing nothing.

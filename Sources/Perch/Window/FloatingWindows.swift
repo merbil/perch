@@ -135,6 +135,67 @@ final class HintController {
         monitor = nil
         guard panel.isVisible else { return }
         NSAnimationContext.runAnimationGroup({ $0.duration = 0.2; panel.animator().alphaValue = 0 },
-                                            completionHandler: { [panel] in panel.orderOut(nil) })
+                                            completionHandler: { [panel] in if panel.alphaValue == 0 { panel.orderOut(nil) } })
+    }
+}
+
+/// The frosted shape that shows where a drag will land. Never takes clicks.
+@MainActor
+final class DropGhost {
+    private let panel: NSPanel
+    private let blur = NSVisualEffectView()
+
+    init() {
+        panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = false
+        panel.ignoresMouseEvents = true
+        panel.isReleasedWhenClosed = false
+        blur.material = .hudWindow
+        blur.blendingMode = .behindWindow
+        blur.state = .active
+        blur.wantsLayer = true
+        blur.layer?.cornerRadius = 16
+        blur.layer?.masksToBounds = true
+        blur.layer?.borderWidth = 1.5
+        blur.layer?.borderColor = NSColor.white.withAlphaComponent(0.6).cgColor
+        panel.contentView = blur
+    }
+
+    /// Sides stuck to the screen edge stay square, like the player itself.
+    func show(_ frame: NSRect, flat: Set<Side>, below window: NSWindow, animated: Bool) {
+        var corners: CACornerMask = []
+        if !flat.contains(.top) && !flat.contains(.left) { corners.insert(.layerMinXMaxYCorner) }
+        if !flat.contains(.top) && !flat.contains(.right) { corners.insert(.layerMaxXMaxYCorner) }
+        if !flat.contains(.bottom) && !flat.contains(.left) { corners.insert(.layerMinXMinYCorner) }
+        if !flat.contains(.bottom) && !flat.contains(.right) { corners.insert(.layerMaxXMinYCorner) }
+        blur.layer?.maskedCorners = corners
+
+        if !panel.isVisible {
+            panel.setFrame(frame, display: true)
+            panel.alphaValue = 0
+            panel.order(.below, relativeTo: window.windowNumber)
+            NSAnimationContext.runAnimationGroup { $0.duration = 0.15; panel.animator().alphaValue = 1 }
+        } else if panel.frame != frame || panel.alphaValue < 1 {
+            panel.animator().alphaValue = 1
+            if animated {
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.18
+                    context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    panel.animator().setFrame(frame, display: true)
+                }
+            } else {
+                panel.setFrame(frame, display: true)
+            }
+        }
+    }
+
+    func hide() {
+        guard panel.isVisible else { return }
+        NSAnimationContext.runAnimationGroup({ $0.duration = 0.2; panel.animator().alphaValue = 0 },
+                                            completionHandler: { [panel] in if panel.alphaValue == 0 { panel.orderOut(nil) } })
     }
 }

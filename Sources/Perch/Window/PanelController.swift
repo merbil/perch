@@ -522,6 +522,7 @@ final class PanelController {
             } else {
                 panel.setFrameOrigin(NSPoint(x: pressOrigin.x + dx, y: pressOrigin.y + dy))
             }
+            updateGhost()
         case .resizing(let grip):
             if let form = resized(grip, dx: dx, dy: dy) {
                 press = .finished
@@ -546,6 +547,14 @@ final class PanelController {
     /// elsewhere → card (or the closest wall's pill with "Stick to the closest wall").
     /// A fixed view keeps its look and only moves.
     private func dropped() {
+        hideGhost()
+        guard let (form, screen) = landing() else { return }
+        setForm(form, on: screen)
+    }
+
+    /// The form and screen a drop right now would give, also saving where along the edge (or
+    /// where on screen) it goes. Nil when a fixed view finds no spot.
+    private func landing() -> (Form, NSScreen)? {
         let mouse = NSEvent.mouseLocation
         let frame = panel.frame
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? currentScreen
@@ -556,22 +565,19 @@ final class PanelController {
             // Let go near the top (or with the Deck view chosen): it hangs from the menu bar again.
             if mouse.y >= visible.maxY - 60 || prefs.view == .deck {
                 prefs.deckCenterX = frame.midX
-                setForm(.deck, on: screen)
-                return
+                return (.deck, screen)
             }
             prefs.formBeforeDeck = nil
         }
 
         guard prefs.view == .auto else {
-            if let form = form(for: prefs.view, near: center, on: screen) { setForm(form, on: screen) }
-            return
+            return form(for: prefs.view, near: center, on: screen).map { ($0, screen) }
         }
 
         if mouse.y >= visible.maxY - 2 {
             prefs.formBeforeDeck = state.form
             prefs.deckCenterX = frame.midX
-            setForm(.deck, on: screen)
-            return
+            return (.deck, screen)
         }
 
         let cornerZone: CGFloat = 110
@@ -580,19 +586,44 @@ final class PanelController {
         let bottom = mouse.y - visible.minY, top = visible.maxY - mouse.y
 
         if min(left, right) < cornerZone, min(bottom, top) < cornerZone {
-            if let form = form(for: .tile, near: mouse, on: screen) { setForm(form, on: screen) }
-            return
+            return form(for: .tile, near: mouse, on: screen).map { ($0, screen) }
         }
 
         if min(left, right, bottom) < edgeZone || prefs.position == .stick {
             let keepTab: Bool = if case .tab = state.form { true } else { false }
-            if let form = form(for: keepTab ? .tab : .pill, near: center, on: screen) { setForm(form, on: screen) }
-            return
+            return form(for: keepTab ? .tab : .pill, near: center, on: screen).map { ($0, screen) }
         }
 
         prefs.cardCenterX = center.x
         prefs.cardCenterY = center.y
-        setForm(state.form == .cardMini ? .cardMini : .card, on: screen)
+        return (state.form == .cardMini ? .cardMini : .card, screen)
+    }
+
+    // MARK: Drop preview
+
+    /// In Auto, a frosted shape where Perch will land, like macOS's own tiling preview.
+    private lazy var ghost = DropGhost()
+
+    private func updateGhost() {
+        guard prefs.view == .auto, !(state.form == .deck && panel.frame.maxY >= currentScreen.visibleFrame.maxY - 1) else {
+            hideGhost()
+            return
+        }
+        // A dry run of the drop: remember the saved spots, ask, put them back.
+        let saved = (prefs.along, prefs.cardCenterX, prefs.cardCenterY, prefs.deckCenterX, prefs.formBeforeDeck)
+        let result = landing()
+        let target = result.map { targetFrame($0.0, on: $0.1) }
+        (prefs.along, prefs.cardCenterX, prefs.cardCenterY, prefs.deckCenterX, prefs.formBeforeDeck) = saved
+        guard let result, let target else { hideGhost(); return }
+        let insets = Layout.insets(for: result.0)
+        let content = NSRect(x: target.minX + insets.leading, y: target.minY + insets.bottom,
+                             width: target.width - insets.leading - insets.trailing,
+                             height: target.height - insets.top - insets.bottom)
+        ghost.show(content, flat: result.0.flatSides, below: panel, animated: !prefs.reduceMotion)
+    }
+
+    private func hideGhost() {
+        ghost.hide()
     }
 
     /// The form a view takes near a point: the closest wall for pill and tab, the closest corner

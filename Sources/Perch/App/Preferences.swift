@@ -77,6 +77,10 @@ final class Preferences {
     /// Stops the menu bar bars, scrolling titles and sliding windows. Starts from the system setting.
     var reduceMotion: Bool { didSet { defaults.set(reduceMotion, forKey: "reduceMotion") } }
     var appearance: AppearanceChoice { didSet { defaults.set(appearance.rawValue, forKey: "appearance") } }
+    /// Minutes without mouse or keyboard before Stage opens full screen while music plays. 0 = never.
+    var stageIdleMinutes: Int { didSet { defaults.set(stageIdleMinutes, forKey: "stageIdleMinutes") } }
+    /// Whether the Stage window is open right now. Not kept: Perch starts with it closed.
+    var isStageOpen = false
 
     var form: Form {
         didSet { defaults.set(try? JSONEncoder().encode(form), forKey: "form") }
@@ -100,6 +104,7 @@ final class Preferences {
         isShown = defaults.object(forKey: "isShown") as? Bool ?? true
         hasSeenTutorial = defaults.bool(forKey: "hasSeenTutorial")
         appearance = defaults.string(forKey: "appearance").flatMap(AppearanceChoice.init(rawValue:)) ?? .system
+        stageIdleMinutes = defaults.object(forKey: "stageIdleMinutes") as? Int ?? 0
         tuckedStyle = defaults.string(forKey: "tuckedStyle").flatMap(TuckedStyle.init(rawValue:)) ?? .peek
         reduceMotion = defaults.object(forKey: "reduceMotion") as? Bool
             ?? NSWorkspace.shared.accessibilityDisplayShouldReduceMotion

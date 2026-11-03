@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var prefs: Preferences!
     private var panel: PanelController!
     private var statusItem: StatusItemController!
+    private var stage: StageController!
     private var menu: MenuPanelController!
     private var tutorial: TutorialWindowController?
     private var about: TutorialWindowController?
@@ -23,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         player = PlayerModel(source: demo ? DemoSource() : SpotifySource())
         panel = PanelController(player: player, prefs: prefs)
         statusItem = StatusItemController(player: player, prefs: prefs)
+        stage = StageController(player: player, prefs: prefs)
 
         let actions = MenuActions(
             toggleShown: { [weak self] in self?.toggleShown() },
@@ -33,6 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showAbout: { [weak self] in
                 self?.menu.close()
                 self?.showAbout()
+            },
+            toggleStage: { [weak self] in
+                self?.menu.close()
+                self?.stage.toggle()
             }
         )
         menu = MenuPanelController(content: MenuView(actions: actions).environment(prefs).environment(player))
@@ -56,6 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Demo runs never go online.
         if !demo { Updater.shared.start() }
         if prefs.isShown { panel.show() }
+        stage.startIdleWatch()
         if !prefs.hasSeenTutorial {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showTutorial() }
         }

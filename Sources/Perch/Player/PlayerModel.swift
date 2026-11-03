@@ -9,6 +9,8 @@ final class PlayerModel {
     private(set) var state: PlaybackState = .notRunning
     private(set) var track: Track?
     private(set) var position: Double = 0
+    private(set) var shuffling = false
+    private(set) var repeating = false
     private(set) var artwork: NSImage? {
         didSet { coverAccent = artwork?.vibrantAccent() }
     }
@@ -65,6 +67,8 @@ final class PlayerModel {
     private func apply(_ reading: SourceReading) {
         state = reading.state
         position = reading.position
+        shuffling = reading.shuffling
+        repeating = reading.repeating
         // Keep the last track around when the app stops, so the idle view isn't empty.
         if let newTrack = reading.track { track = newTrack }
         loadArtwork(track?.artworkURL)
@@ -87,6 +91,31 @@ final class PlayerModel {
     func previous() {
         source.previous()
         refreshSoon()
+    }
+
+    /// `fraction` of the way into the song, 0…1.
+    func seek(to fraction: Double) {
+        guard let duration = track?.duration, duration > 0, !isIdle else { return }
+        position = min(max(fraction, 0), 1) * duration
+        source.seek(to: position)
+        refreshSoon()
+    }
+
+    func toggleShuffling() {
+        shuffling.toggle()
+        source.setShuffling(shuffling)
+        refreshSoon()
+    }
+
+    func toggleRepeating() {
+        repeating.toggle()
+        source.setRepeating(repeating)
+        refreshSoon()
+    }
+
+    /// The song in the player app itself.
+    func openInPlayer() {
+        if let link = track?.link { NSWorkspace.shared.open(link) }
     }
 
     private func refreshSoon() {

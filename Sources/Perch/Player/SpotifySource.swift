@@ -27,7 +27,13 @@ final class SpotifySource: MusicSource {
         set s to player state as string
         if s is "stopped" then return s
         set t to current track
-        return s & linefeed & (id of t) & linefeed & (name of t) & linefeed & (artist of t) & linefeed & (album of t) & linefeed & (artwork url of t) & linefeed & ((duration of t) as string) & linefeed & ((player position) as string)
+        set sh to "false"
+        set re to "false"
+        try
+            set sh to (shuffling as string)
+            set re to (repeating as string)
+        end try
+        return s & linefeed & (id of t) & linefeed & (name of t) & linefeed & (artist of t) & linefeed & (album of t) & linefeed & (artwork url of t) & linefeed & ((duration of t) as string) & linefeed & ((player position) as string) & linefeed & sh & linefeed & re & linefeed & (spotify url of t)
     end tell
     """
 
@@ -59,9 +65,12 @@ final class SpotifySource: MusicSource {
             artist: lines[3],
             album: lines[4],
             artworkURL: URL(string: lines[5]),
-            duration: (number(lines[6]) ?? 0) / 1000   // Spotify reports milliseconds
+            duration: (number(lines[6]) ?? 0) / 1000,   // Spotify reports milliseconds
+            link: lines.count > 10 ? URL(string: lines[10]) : nil
         )
-        return SourceReading(state: state, track: track, position: number(lines[7]) ?? 0)
+        return SourceReading(state: state, track: track, position: number(lines[7]) ?? 0,
+                             shuffling: lines.count > 8 && lines[8] == "true",
+                             repeating: lines.count > 9 && lines[9] == "true")
     }
 
     /// AppleScript formats reals with the user's locale ("12,5" in Turkish or German).
@@ -85,6 +94,22 @@ final class SpotifySource: MusicSource {
     func previous() {
         guard isRunning else { return }
         send(#"tell application id "com.spotify.client" to previous track"#)
+    }
+
+    func seek(to seconds: Double) {
+        guard isRunning, seconds.isFinite else { return }
+        // A plain number in the source: AppleScript reads "12.5" whatever the locale.
+        send("tell application id \"com.spotify.client\" to set player position to \(String(format: "%.1f", max(seconds, 0)))")
+    }
+
+    func setShuffling(_ on: Bool) {
+        guard isRunning else { return }
+        send("tell application id \"com.spotify.client\" to set shuffling to \(on)")
+    }
+
+    func setRepeating(_ on: Bool) {
+        guard isRunning else { return }
+        send("tell application id \"com.spotify.client\" to set repeating to \(on)")
     }
 
     private func launchAndPlay() {

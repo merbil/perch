@@ -76,6 +76,20 @@ enum Snapshot {
             rendered.append((Shot(name: "dark-menu", form: .card), image))
         }
 
+        // Stage at a few window shapes; "full" is the dark look, "idle" the screensaver.
+        for (name, width, height, full, controls) in [("stage-wide", 880.0, 520.0, false, true), ("stage-tall", 420.0, 680.0, false, true),
+                                                       ("stage-small", 240.0, 240.0, false, true), ("stage-wide-still", 880.0, 520.0, false, false),
+                                                       ("stage-full", 1440.0, 900.0, true, true)] {
+            let stage = StageState()
+            stage.isFullScreen = full
+            stage.controlsShown = controls
+            let view = StageView().environment(stage).environment(prefs).environment(demo).frame(width: width, height: height)
+            if let image = render(view) { write(image, to: folder.appendingPathComponent("\(name).png")) }
+        }
+        if let image = renderDark(MenuView(actions: MenuActions()).environment(prefs).environment(demo)) {
+            write(image, to: folder.appendingPathComponent("dark-menu-stage.png"))
+        }
+
         if let image = render(AboutView(onClose: {}).environment(prefs).environment(demo)) {
             write(image, to: folder.appendingPathComponent("about.png"))
         }

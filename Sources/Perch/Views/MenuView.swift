@@ -6,6 +6,7 @@ struct MenuActions {
     var toggleShown: () -> Void = {}
     var showTutorial: () -> Void = {}
     var showAbout: () -> Void = {}
+    var toggleStage: () -> Void = {}
     var quit: () -> Void = { NSApp.terminate(nil) }
 }
 
@@ -75,6 +76,28 @@ struct MenuView: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(30), spacing: 10), count: 6), alignment: .leading, spacing: 10) {
                     ForEach(Accent.allCases) { accent in
                         Swatch(accent: accent, selected: prefs.accent == accent) { prefs.accent = accent }
+                    }
+                }
+            }
+
+            section("Stage") {
+                HStack {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Big window").font(.perch(13, .bold)).foregroundStyle(Palette.ink)
+                        Text("Resizable, up to full screen").font(.perch(11, .bold)).foregroundStyle(Palette.muted)
+                    }
+                    Spacer()
+                    ArcadeSwitch(isOn: prefs.isStageOpen, accent: prefs.accentColor(for: player), label: "Big window") {
+                        actions.toggleStage()
+                    }
+                }
+                Text("Start when idle").font(.perch(11, .bold)).foregroundStyle(Palette.muted)
+                FlowGrid(columns: 4) {
+                    ForEach([0, 5, 10, 20], id: \.self) { minutes in
+                        Chip(title: minutes == 0 ? "Off" : "\(minutes) min", selected: prefs.stageIdleMinutes == minutes,
+                             accent: prefs.accentColor(for: player)) {
+                            prefs.stageIdleMinutes = minutes
+                        }
                     }
                 }
             }

@@ -36,6 +36,11 @@ final class DemoSource: MusicSource {
         playing.toggle()
     }
 
+    func seek(to seconds: Double) {
+        pausedPosition = seconds
+        startedAt = Date().addingTimeInterval(-seconds)
+    }
+
     func next() { jump(by: 1) }
     func previous() { jump(by: -1) }
 

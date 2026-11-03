@@ -2,7 +2,14 @@
 
 ## Next (unreleased)
 
+### Added
+- Stage, a big Perch window. Turn it on under Stage in the menu. Make it any size, tile it next to another app, or go full screen with the green button. The layout follows the window: just the art when it's small, art and song side by side when it's wide, stacked when it's tall, and dark with the cover's color behind it when it's big.
+- In Stage, click or drag the bar to jump around in the song, and turn shuffle and repeat on or off. Click the album name to open the song in Spotify.
+- The controls and the window buttons fade out when you stop moving the mouse, and come back when you move it.
+- Start when idle: pick 5, 10 or 20 minutes, and Stage fills the screen like a screensaver once your Mac sits untouched that long while music plays. Any mouse or keyboard input closes it again.
+
 ### Changed
+- When Perch can't update itself, it says why. Usually you need admin rights to change apps in the Applications folder. It suggests downloading instead, or moving Perch to the Applications folder in your home folder.
 - The power button in the menu asks "Quit Perch?" first, so you don't quit it by accident.
 - The menu bar icon moves more smoothly and uses less effort. Its bars animate in place instead of being redrawn many times a second.
 

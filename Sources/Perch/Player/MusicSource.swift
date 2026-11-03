@@ -8,6 +8,8 @@ struct Track: Equatable {
     var artworkURL: URL?
     /// Seconds.
     var duration: Double
+    /// Opens the song in the player app ("spotify:track:…").
+    var link: URL? = nil
 }
 
 enum PlaybackState: Equatable {
@@ -23,6 +25,8 @@ struct SourceReading: Equatable {
     var track: Track?
     /// Seconds into the track.
     var position: Double
+    var shuffling = false
+    var repeating = false
 }
 
 /// A music app Perch can read and control. Spotify first, Apple Music later.
@@ -36,4 +40,14 @@ protocol MusicSource: AnyObject {
     func playPause()
     func next()
     func previous()
+    /// Seconds into the current track.
+    func seek(to seconds: Double)
+    func setShuffling(_ on: Bool)
+    func setRepeating(_ on: Bool)
+}
+
+extension MusicSource {
+    func seek(to seconds: Double) {}
+    func setShuffling(_ on: Bool) {}
+    func setRepeating(_ on: Bool) {}
 }

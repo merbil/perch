@@ -1,6 +1,6 @@
 # Perch release notes
 
-## Next (unreleased)
+## 0.3.0 (build 10): 2026-11-03
 
 ### Added
 - Stage, a big Perch window. Turn it on under Stage in the menu, or with the screen button on the card. Make it any size, tile it next to another app, or go full screen with the green button. The layout follows the window: just the art when it's small, art and song side by side when it's wide, stacked when it's tall, and dark with the cover's color behind it when it's big.

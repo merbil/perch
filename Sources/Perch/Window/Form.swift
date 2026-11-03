@@ -2,14 +2,17 @@ import AppKit
 import SwiftUI
 
 enum ScreenEdge: String, Codable {
-    case left, right, bottom
+    case left, right, bottom, top
     var side: Side {
         switch self {
         case .left: .left
         case .right: .right
         case .bottom: .bottom
+        case .top: .top
         }
     }
+    /// Left or right, where the tab and the side resize grips live.
+    var isSide: Bool { self == .left || self == .right }
 }
 
 enum ScreenCorner: String, Codable {
@@ -28,7 +31,7 @@ enum Side: Hashable { case left, right, top, bottom }
 
 /// The player's look. Where it sits on screen picks the form (see DESIGN.md).
 enum Form: Codable, Hashable {
-    /// A: horizontal bar on a side or bottom edge.
+    /// A: horizontal bar on a side, the bottom or the top edge.
     case pill(ScreenEdge)
     /// A swiped into the edge: album art only.
     case tucked(ScreenEdge)

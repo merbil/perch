@@ -309,17 +309,18 @@ final class PanelController {
                 let along = prefs.along >= 0 ? prefs.along : visible.midY
                 origin.x = edge == .left ? visible.minX : visible.maxX - size.width
                 origin.y = clamp(along - size.height / 2, visible.minY, visible.maxY - size.height)
-            case .bottom:
+            case .bottom, .top:
                 let along = prefs.along >= 0 ? prefs.along : visible.midX
                 origin.x = clamp(along - size.width / 2, visible.minX, visible.maxX - size.width)
-                origin.y = visible.minY
+                origin.y = edge == .bottom ? visible.minY : visible.maxY - size.height
             }
             if case .tucked = form, !tuckedOut, prefs.tuckedStyle == .peek {
-                let hidden = (edge == .bottom ? size.height : size.width) - Layout.peek
+                let hidden = (edge.isSide ? size.width : size.height) - Layout.peek
                 switch edge {
                 case .left: origin.x -= hidden
                 case .right: origin.x += hidden
                 case .bottom: origin.y -= hidden
+                case .top: origin.y += hidden
                 }
             }
         case .tile(let corner):
@@ -343,7 +344,7 @@ final class PanelController {
     private func offscreen(_ frame: NSRect, for form: Form) -> NSRect {
         let flat = form.flatSides
         var out = frame
-        if flat.contains(.top) && form == .deck { out.origin.y += frame.height }
+        if flat.contains(.top) && (form == .deck || form.edge == .top) { out.origin.y += frame.height }
         else if flat.contains(.left) { out.origin.x -= frame.width }
         else if flat.contains(.right) { out.origin.x += frame.width }
         else if flat.contains(.bottom) { out.origin.y -= frame.height }
@@ -376,9 +377,10 @@ final class PanelController {
         case .left where point.x > content.maxX - zone: return .outer
         case .right where point.x < content.minX + zone: return .outer
         case .bottom where point.y > content.maxY - zone: return .outer
+        case .top where point.y < content.minY + zone: return .outer
         default: break
         }
-        guard edge != .bottom else { return nil }
+        guard edge.isSide else { return nil }
         if point.y > content.maxY - zone { return .top }
         if point.y < content.minY + zone { return .bottom }
         return nil
@@ -392,12 +394,13 @@ final class PanelController {
         case .left: dx
         case .right: -dx
         case .bottom: dy
+        case .top: -dy
         }
         let grow: CGFloat = grip == .top ? dy : -dy
         let threshold: CGFloat = 24
         switch (state.form, grip) {
         case (.tucked, .outer) where outward > threshold:
-            return prefs.view == .tab && edge != .bottom ? .tab(edge) : .pill(edge)
+            return prefs.view == .tab && edge.isSide ? .tab(edge) : .pill(edge)
         case (.tucked, .top), (.tucked, .bottom):
             return grow > threshold && prefs.view != .pill ? .tab(edge) : (grow > threshold ? .pill(edge) : nil)
         case (.tab, .outer) where outward > threshold:
@@ -418,7 +421,7 @@ final class PanelController {
         let grip: ResizeAxis?
         if case .resizing(let pulled) = press { grip = pulled } else if case .idle = press { grip = resizeZone(at: point) } else { grip = nil }
         guard let grip else { return nil }
-        let sideways = grip == .outer && state.form.edge != .bottom
+        let sideways = grip == .outer && state.form.edge?.isSide == true
         return sideways ? .resizeLeftRight : .resizeUpDown
     }
 
@@ -462,7 +465,7 @@ final class PanelController {
         }
     }
 
-    /// Where it's let go picks the form. In Auto: menu bar → deck, corner → tile, edge → pill,
+    /// Where it's let go picks the form. In Auto: corner → tile, edge (top too) → pill,
     /// elsewhere → card (or the closest wall's pill with "Stick to the closest wall").
     /// A fixed view keeps its look and only moves.
     private func dropped() {
@@ -493,12 +496,6 @@ final class PanelController {
             return form(for: prefs.view, near: center, on: screen).map { ($0, screen) }
         }
 
-        if mouse.y >= visible.maxY - 2 {
-            prefs.formBeforeDeck = state.form
-            prefs.deckCenterX = frame.midX
-            return (.deck, screen)
-        }
-
         let cornerZone: CGFloat = 110
         let edgeZone: CGFloat = 90
         let left = mouse.x - visible.minX, right = visible.maxX - mouse.x
@@ -508,7 +505,7 @@ final class PanelController {
             return form(for: .tile, near: mouse, on: screen).map { ($0, screen) }
         }
 
-        if min(left, right, bottom) < edgeZone || prefs.position == .stick {
+        if min(left, right, bottom, top) < edgeZone || prefs.position == .stick {
             let keepTab: Bool = if case .tab = state.form { true } else { false }
             return form(for: keepTab ? .tab : .pill, near: center, on: screen).map { ($0, screen) }
         }
@@ -552,14 +549,14 @@ final class PanelController {
         let left = point.x - visible.minX, right = visible.maxX - point.x
         let bottom = point.y - visible.minY, top = visible.maxY - point.y
         let side: ScreenEdge = left <= right ? .left : .right
-        let wall: ScreenEdge = bottom < min(left, right) ? .bottom : side
+        let wall: ScreenEdge = min(bottom, top) < min(left, right) ? (bottom <= top ? .bottom : .top) : side
         let isTucked: Bool = if case .tucked = state.form { true } else { false }
 
         switch view {
         case .auto, .deck:
             return nil
         case .pill:
-            prefs.along = wall == .bottom ? point.x : point.y
+            prefs.along = wall.isSide ? point.y : point.x
             return isTucked ? .tucked(wall) : .pill(wall)
         case .tab:
             prefs.along = point.y
@@ -686,6 +683,7 @@ final class PanelController {
         case .left: -fingersRight
         case .right: fingersRight
         case .bottom: fingersDown
+        case .top: -fingersDown
         }
         swipe += towardEdge
 

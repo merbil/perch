@@ -165,17 +165,24 @@ struct SkipButton: View {
     }
 }
 
-/// Thin accent strip showing how far into the song we are.
+/// Accent strip along the bottom showing how far into the song we are, over a faint track.
+/// `lift` keeps it clear of the outline when the bottom isn't against the screen edge.
 struct ProgressStrip: View {
     @Environment(PlayerModel.self) private var player
     @Environment(Preferences.self) private var prefs
-    var height: CGFloat = 4
+    var height: CGFloat = 6
+    var lift: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
-            Rectangle().fill(prefs.accentColor(for: player))
-                .frame(width: geo.size.width * player.progress, height: height)
-                .frame(maxHeight: .infinity, alignment: .bottom)
+            ZStack(alignment: .leading) {
+                Rectangle().fill(Palette.ink.opacity(0.1))
+                Rectangle().fill(prefs.accentColor(for: player))
+                    .frame(width: geo.size.width * player.progress)
+            }
+            .frame(height: height)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, lift)
         }
         .allowsHitTesting(false)
         .animation(.linear(duration: 1), value: player.progress)

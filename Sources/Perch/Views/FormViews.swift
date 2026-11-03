@@ -89,7 +89,7 @@ struct PillView: View {
         .padding(.leading, edge == .left ? 14 : 10)
         .padding(.trailing, edge == .right ? 10 : 14)
         .frame(width: 372, height: 72)
-        .overlay { ProgressStrip() }
+        .overlay { ProgressStrip(lift: edge == .bottom ? 0 : 3) }
         .surface(flat: [edge.side], radius: 22)
     }
 
@@ -145,7 +145,7 @@ struct EdgeTabView: View {
         }
         .padding(.top, 8)
         .frame(width: 52, height: state.tabHeight, alignment: .top)
-        .overlay { ProgressStrip() }
+        .overlay { ProgressStrip(lift: 3) }
         .surface(flat: [edge.side], radius: 18)
         .tracksHover($hovering)
     }
@@ -191,7 +191,7 @@ struct TileView: View {
             Spacer(minLength: 0)
         }
         .frame(width: 220, height: 268)
-        .overlay { ProgressStrip() }
+        .overlay { ProgressStrip(lift: corner.sides.contains(.bottom) ? 0 : 3) }
         .surface(flat: corner.sides, radius: 22)
         .tracksHover($hovering)
         .animation(.spring(duration: 0.25), value: hovering)

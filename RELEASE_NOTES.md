@@ -16,6 +16,7 @@
 
 ### Changed
 - In Auto, dragging Perch up to the menu bar gives the top pill now. The Winamp-style deck is its own view: pick Deck in the menu.
+- The menu scrolls when your screen is too short to show all of it.
 
 ## 0.2.7 (build 9): 2026-11-03
 

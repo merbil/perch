@@ -37,13 +37,14 @@ final class Updater {
         var notice: String? {
             switch self {
             case .installFailed: Updater.failureText
-            case .needsManualDownload: Updater.failureText
+            case .needsManualDownload: Updater.fallbackText
             default: nil
             }
         }
     }
 
     nonisolated static let failureText = "Couldn't update automatically, but you can download it instead."
+    nonisolated static let fallbackText = "Perch can't replace itself where it is now, often because updating apps here needs admin rights. Download it instead, or move Perch to the Applications folder in your home folder for one-click updates."
 
     private(set) var state = State.idle
     private(set) var isRunning = false

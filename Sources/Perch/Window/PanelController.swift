@@ -29,6 +29,7 @@ final class PerchPanel: NSPanel {
         if GestureLog.gestureTypes.contains(event.type) {
             GestureLog.write(GestureLog.describe(event, from: "panel"))
             if event.type == .magnify { MainActor.assumeIsolated { controller.pinched(event) } }
+            if event.type == .gesture { MainActor.assumeIsolated { controller.touched(event) } }
         }
         switch event.type {
         case .leftMouseDown:
@@ -441,10 +442,36 @@ final class PanelController {
 
     /// Pinch out: tucked art → tab (or pill), album art → card. Pinch in goes back.
     func pinched(_ event: NSEvent) {
-        if event.phase == .began { pinch = 0; pinchDone = false }
-        if event.phase == .ended || event.phase == .cancelled { NSCursor.arrow.set(); return }
+        pinched(by: event.magnification, phase: event.phase)
+    }
+
+    private var fingerStart: CGFloat?
+    private var fingerLast: CGFloat = 0
+
+    /// While another app is in front, macOS sends Perch the raw trackpad touches but never a
+    /// magnify event. Two fingers moving apart or together are measured here instead.
+    func touched(_ event: NSEvent) {
+        let points = event.touches(matching: .touching, in: nil).map(\.normalizedPosition)
+        guard points.count == 2 else {
+            if fingerStart != nil { fingerStart = nil; pinched(by: 0, phase: .ended) }
+            return
+        }
+        let distance = hypot(points[0].x - points[1].x, points[0].y - points[1].y)
+        guard let start = fingerStart, start > 0.01 else {
+            fingerStart = distance
+            fingerLast = distance
+            pinched(by: 0, phase: .began)
+            return
+        }
+        pinched(by: (distance - fingerLast) / start, phase: .changed)
+        fingerLast = distance
+    }
+
+    private func pinched(by magnification: CGFloat, phase: NSEvent.Phase) {
+        if phase == .began { pinch = 0; pinchDone = false }
+        if phase == .ended || phase == .cancelled { NSCursor.arrow.set(); return }
         guard !pinchDone else { return }
-        pinch += event.magnification
+        pinch += magnification
         GestureLog.write("pinch total=\(pinch) form=\(state.form)")
 
         if case .tucked = state.form { NSCursor.resizeUpDown.set() }

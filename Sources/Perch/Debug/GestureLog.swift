@@ -30,6 +30,7 @@ enum GestureLog {
     static func describe(_ event: NSEvent, from source: String) -> String {
         var text = "\(source) type=\(event.type.rawValue)"
         if event.type == .magnify { text += " magnification=\(event.magnification) phase=\(event.phase.rawValue)" }
+        if event.type == .gesture { text += " touches=\(event.touches(matching: .touching, in: nil).count)" }
         let mouse = NSEvent.mouseLocation
         text += " mouse=\(Int(mouse.x)),\(Int(mouse.y)) window=\(event.window?.className ?? "none")"
         return text

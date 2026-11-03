@@ -170,7 +170,7 @@ struct SkipButton: View {
 struct ProgressStrip: View {
     @Environment(PlayerModel.self) private var player
     @Environment(Preferences.self) private var prefs
-    var height: CGFloat = 6
+    var height: CGFloat = 4
     var lift: CGFloat = 0
 
     var body: some View {

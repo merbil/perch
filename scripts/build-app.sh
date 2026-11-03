@@ -41,6 +41,11 @@ else
 fi
 echo "Built $APP"
 
+# Keep macOS from registering this copy next to the one in /Applications. Two apps with the same
+# bundle ID confused Control Center on the dev Mac: the menu bar clock stopped opening
+# Notification Center while Perch ran (2026-11-03).
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$PWD/$APP" 2>/dev/null || true
+
 if [[ "${1:-}" == "--install" ]]; then
   pkill -x Perch 2>/dev/null || true
   sleep 1

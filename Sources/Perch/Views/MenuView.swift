@@ -14,6 +14,8 @@ struct MenuView: View {
     @Environment(Preferences.self) private var prefs
     @Environment(PlayerModel.self) private var player
     var actions: MenuActions
+    /// The power button asks first; this shows the "Quit Perch?" row.
+    @State private var confirmingQuit = false
 
     static let width: CGFloat = 288
 
@@ -105,13 +107,31 @@ struct MenuView: View {
 
             UpdateRow()
 
-            HStack(spacing: 8) {
-                FooterButton(symbol: "questionmark.circle.fill", title: "Tutorial", action: actions.showTutorial)
-                FooterButton(symbol: "info.circle.fill", title: "About", action: actions.showAbout)
-                FooterButton(symbol: "power", title: nil, action: actions.quit)
-                    .frame(width: 40)
-                    .accessibilityLabel("Quit Perch")
-                    .help("Quit Perch")
+            if confirmingQuit {
+                HStack(spacing: 8) {
+                    Text("Quit Perch?").font(.perch(13)).foregroundStyle(Palette.ink)
+                    Spacer()
+                    FooterButton(symbol: "xmark", title: "Cancel") { confirmingQuit = false }
+                        .frame(width: 92)
+                    FooterButton(symbol: "power", title: "Quit", action: actions.quit)
+                        .frame(width: 80)
+                        .keyboardShortcut(.defaultAction)
+                }
+                .frame(height: 34)
+                .task {
+                    // Back to the normal buttons if the question is left unanswered.
+                    try? await Task.sleep(for: .seconds(6))
+                    confirmingQuit = false
+                }
+            } else {
+                HStack(spacing: 8) {
+                    FooterButton(symbol: "questionmark.circle.fill", title: "Tutorial", action: actions.showTutorial)
+                    FooterButton(symbol: "info.circle.fill", title: "About", action: actions.showAbout)
+                    FooterButton(symbol: "power", title: nil) { confirmingQuit = true }
+                        .frame(width: 40)
+                        .accessibilityLabel("Quit Perch")
+                        .help("Quit Perch")
+                }
             }
         }
         .padding(16)

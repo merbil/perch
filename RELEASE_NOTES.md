@@ -1,5 +1,11 @@
 # Perch release notes
 
+## Next (unreleased)
+
+### Changed
+- The power button in the menu asks "Quit Perch?" first, so you don't quit it by accident.
+- The menu bar icon moves more smoothly and uses less effort. Its bars animate in place instead of being redrawn many times a second.
+
 ## 0.2.6 (build 8): 2026-11-03
 
 ### Fixed

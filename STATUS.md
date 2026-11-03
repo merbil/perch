@@ -1,5 +1,13 @@
 # Perch status
 
+## 2026-11-03: the menu bar clock stopped opening Notification Center (dev Mac only)
+
+Cause: Control Center's stale memory of Perch menu bar items, left by force-killing Perch (`pkill`) many times during testing and by a second registered copy (`build/Perch.app`, same bundle ID). Fixed by `killall ControlCenter`. Not a bug users hit (Mert's work Mac was fine all day).
+- Never force-kill Perch while testing; quit it properly (`osascript -e 'tell application id "com.merterbil.perch" to quit'` or the power button).
+- Never run Perch from `build/`; `scripts/build-app.sh` now unregisters that copy from LaunchServices.
+- If it happens again: `killall ControlCenter` (and `killall NotificationCenter` if banners stop).
+
+
 ## 2026-11-02: waiting on Mert's pinch test at home
 
 - 0.2.4 released. This Mac had stayed on 0.2.3 (Mert tested on his work Mac).

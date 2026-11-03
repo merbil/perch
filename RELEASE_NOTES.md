@@ -17,6 +17,7 @@
 ### Changed
 - In Auto, dragging Perch up to the menu bar gives the top pill now. The Winamp-style deck is its own view: pick Deck in the menu.
 - The menu scrolls when your screen is too short to show all of it.
+- The progress bar on the pill, tab and tile isn't half hidden under the outline any more, and a faint track shows the rest of the song.
 
 ## 0.2.7 (build 9): 2026-11-03
 

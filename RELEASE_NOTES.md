@@ -1,6 +1,6 @@
 # Perch release notes
 
-## Next (unreleased)
+## 0.3.1 (build 11): 2026-11-03
 
 ### Added
 - Stage has two buttons in its top corner: one switches between light and dark, the other goes full screen and back. They fade out with the other controls.

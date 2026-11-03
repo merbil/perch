@@ -26,11 +26,6 @@ final class PerchPanel: NSPanel {
 
     override func sendEvent(_ event: NSEvent) {
         guard let controller else { return super.sendEvent(event) }
-        if GestureLog.gestureTypes.contains(event.type) {
-            GestureLog.write(GestureLog.describe(event, from: "panel"))
-            if event.type == .magnify { MainActor.assumeIsolated { controller.pinched(event) } }
-            if event.type == .gesture { MainActor.assumeIsolated { controller.touched(event) } }
-        }
         switch event.type {
         case .leftMouseDown:
             // Hold the press until we know whether it's a click or a drag.
@@ -138,12 +133,6 @@ final class PanelController {
         host.cursorFor = { [weak self] point in
             MainActor.assumeIsolated { self?.resizeCursor(at: point) }
         }
-
-        // Pinch gestures also only go to the active app. A global monitor sees the ones aimed at
-        // whatever app is in front; the local one covers the times Perch is active.
-        // Only gestures sent to Perch itself, logged in its panel's sendEvent. A system-wide
-        // gesture monitor was tried in 0.2.4 and is gone: it never saw a pinch, and with it
-        // running the menu bar clock stopped opening Notification Center.
 
         state.minimise = { [weak self] in self?.switchCard(to: .cardMini) }
         state.openStage = { [weak self] in self?.openStage() }
@@ -431,76 +420,6 @@ final class PanelController {
         guard let grip else { return nil }
         let sideways = grip == .outer && state.form.edge != .bottom
         return sideways ? .resizeLeftRight : .resizeUpDown
-    }
-
-    private func pinchIfOver(_ event: NSEvent) {
-        guard isVisible, panel.frame.contains(NSEvent.mouseLocation) else { return }
-        pinched(event)
-    }
-
-    // MARK: Pinch
-
-    private var pinch: CGFloat = 0
-    private var pinchDone = false
-
-    /// Pinch out: tucked art → tab (or pill), album art → card. Pinch in goes back.
-    func pinched(_ event: NSEvent) {
-        pinched(by: event.magnification, phase: event.phase)
-    }
-
-    private var fingerStart: CGFloat?
-    private var fingerLast: CGFloat = 0
-
-    /// While another app is in front, macOS sends Perch the raw trackpad touches but never a
-    /// magnify event. Two fingers moving apart or together are measured here instead.
-    func touched(_ event: NSEvent) {
-        let points = event.touches(matching: .touching, in: nil).map(\.normalizedPosition)
-        guard points.count == 2 else {
-            if fingerStart != nil { fingerStart = nil; pinched(by: 0, phase: .ended) }
-            return
-        }
-        let distance = hypot(points[0].x - points[1].x, points[0].y - points[1].y)
-        guard let start = fingerStart, start > 0.01 else {
-            fingerStart = distance
-            fingerLast = distance
-            pinched(by: 0, phase: .began)
-            return
-        }
-        pinched(by: (distance - fingerLast) / start, phase: .changed)
-        fingerLast = distance
-    }
-
-    private func pinched(by magnification: CGFloat, phase: NSEvent.Phase) {
-        if phase == .began { pinch = 0; pinchDone = false }
-        if phase == .ended || phase == .cancelled { NSCursor.arrow.set(); return }
-        guard !pinchDone else { return }
-        pinch += magnification
-        GestureLog.write("pinch total=\(pinch) form=\(state.form)")
-
-        if case .tucked = state.form { NSCursor.resizeUpDown.set() }
-        let opening = pinch > 0.25, closing = pinch < -0.2
-        guard opening || closing else { return }
-
-        var target: Form?
-        switch state.form {
-        case .tucked(let edge) where opening:
-            let tab = edge != .bottom && prefs.view != .pill
-            target = tab ? .tab(edge) : .pill(edge)
-        case .tab(let edge) where closing, .pill(let edge) where closing:
-            target = .tucked(edge)
-        case .cardMini where opening:
-            pinchDone = true
-            switchCard(to: .card)
-        case .card where closing:
-            pinchDone = true
-            switchCard(to: .cardMini)
-        default:
-            break
-        }
-        if let target {
-            pinchDone = true
-            morph(to: target)
-        }
     }
 
     func dragged(_ event: NSEvent) {

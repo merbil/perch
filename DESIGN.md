@@ -34,7 +34,7 @@ Where the player sits picks the form. No manual "look" switch needed.
 | C · Card | Dropped mid-screen | The main free-floating version. A small corner button shrinks it to album art only; the same button on the art expands it back. |
 | D · Deck | Dragged up to the menu bar, or right-click the menu bar icon | Opens right under the menu bar icon by default; can be dragged anywhere along the menu bar. Stays out until its own roll-in button. |
 
-Tucked art either peeks (22 px showing, slides out when the pointer comes near, back after a short pause) or always shows the album art; a menu setting picks. Its free sides show resize arrows: pulled taller it becomes the tab, pulled wider the pill. Pinching works too: pinch out on the tucked art for the tab, pinch in on the pill or tab to tuck it, and pinch to switch between card and album art. The tab's height follows the song title. Titles never end in "…": they scroll (or fade out with Reduce motion).
+Tucked art either peeks (22 px showing, slides out when the pointer comes near, back after a short pause) or always shows the album art; a menu setting picks. Its free sides show resize arrows: pulled taller it becomes the tab, pulled wider the pill. The tab's height follows the song title. Titles never end in "…": they scroll (or fade out with Reduce motion).
 
 The deck slides along the menu bar; pulled down more than 50 px it comes off and follows the normal drop rules, and let go near the top it hangs from the menu bar again.
 

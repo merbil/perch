@@ -13,6 +13,9 @@
 - The first time you finish the tutorial, a note under the menu bar icon shows where Perch lives.
 - Start when idle: pick 5, 10 or 20 minutes, and Stage fills the screen like a screensaver once your Mac sits untouched that long while music plays. Any mouse or keyboard input closes it again.
 
+### Removed
+- Pinching. macOS doesn't pass a pinch to an app that isn't in front, and Perch almost never is. Pull the edges or use the shrink and expand buttons instead.
+
 ## 0.2.7 (build 9): 2026-11-03
 
 ### Changed

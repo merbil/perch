@@ -8,6 +8,9 @@ Cause: Control Center's stale memory of Perch menu bar items, left by force-kill
 - If it happens again: `killall ControlCenter` (and `killall NotificationCenter` if banners stop).
 
 
+## 2026-11-03: pinch dropped
+- Tried three routes (magnify events, a global gesture monitor, raw trackpad touches); macOS never gives an app that isn't in front a usable pinch. Mert dropped it for 0.3.0, along with the gesture log. Resize grips and the shrink/expand buttons cover the same moves.
+
 ## 2026-11-02: waiting on Mert's pinch test at home
 
 - 0.2.4 released. This Mac had stayed on 0.2.3 (Mert tested on his work Mac).
@@ -99,7 +102,7 @@ To see every form as an image without running the app: `.build/debug/Perch --sna
 - Backlog in DESIGN.md: keyboard shortcuts, Apple Music.
 
 ## Version numbers
-- 0.MINOR.PATCH. Patch (0.2.6 → 0.2.7): fixes and small tweaks only. Minor (0.2 → 0.3): new features. 1.0 once Perch feels finished (Apple Music in, pinch working or gone).
+- 0.MINOR.PATCH. Patch (0.2.6 → 0.2.7): fixes and small tweaks only. Minor (0.2 → 0.3): new features. 1.0 once Perch feels finished (Apple Music in).
 - The build number (CFBundleVersion) goes up by one with every release and is never reused; the updater only offers a higher version.
 - Every release gets a `v<version>` tag on its commit.
 - Debug-only things (like the gesture log) never go in the release notes.

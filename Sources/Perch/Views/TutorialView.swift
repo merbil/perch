@@ -208,7 +208,6 @@ struct TutorialView: View {
             clickRow("Click the bars", "this menu, with the views and colors")
             clickRow("Right-click the bars", "hide or show Perch")
             clickRow("Right-click the player", "quick settings")
-            clickRow("Pinch the card", "just the album art, and back")
         }
     }
 

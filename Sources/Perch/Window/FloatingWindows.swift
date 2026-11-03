@@ -39,9 +39,11 @@ final class MenuPanelController {
 
     func open(below buttonFrame: NSRect?) {
         guard let host = panel.contentView else { return }
-        let size = host.fittingSize
         let screen = NSScreen.screens.first { screen in buttonFrame.map { screen.frame.intersects($0) } ?? false }
             ?? NSScreen.main ?? NSScreen.screens[0]
+        // Never taller than the screen below the menu bar; the menu scrolls instead.
+        var size = host.fittingSize
+        size.height = min(size.height, screen.visibleFrame.height - 8)
         let anchorX = buttonFrame?.minX ?? screen.visibleFrame.maxX - size.width
         let x = min(max(anchorX - 12, screen.frame.minX + 8), screen.frame.maxX - size.width - 8)
         let y = screen.visibleFrame.maxY - size.height - 4

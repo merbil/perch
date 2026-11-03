@@ -21,8 +21,20 @@ struct MenuView: View {
     static let width: CGFloat = 288
 
     var body: some View {
+        // Scrolls only when the screen is too short for all of it.
+        ViewThatFits(in: .vertical) {
+            items
+            ScrollView(.vertical) { items }
+        }
+        .frame(width: Self.width)
+        .surface(radius: 18)
+        .padding(.trailing, 6)
+        .padding(.bottom, 6)
+    }
+
+    private var items: some View {
         @Bindable var prefs = prefs
-        VStack(alignment: .leading, spacing: 14) {
+        return VStack(alignment: .leading, spacing: 14) {
             HStack {
                 HStack(spacing: 8) {
                     LogoMark(bird: prefs.accentColor(for: player)).frame(width: 30, height: 30)
@@ -113,19 +125,6 @@ struct MenuView: View {
                 }
             }
 
-            section("Music") {
-                HStack(spacing: 8) {
-                    Text("Spotify")
-                        .font(.perch(12))
-                        .foregroundStyle(Palette.paper)
-                        .padding(.horizontal, 9).padding(.vertical, 4)
-                        .background(RoundedRectangle(cornerRadius: 7).fill(Palette.ink))
-                    Text("Apple Music · soon")
-                        .font(.perch(12, .bold))
-                        .foregroundStyle(Palette.muted)
-                }
-            }
-
             Rectangle().fill(Palette.ink.opacity(0.12)).frame(height: 2)
 
             UpdateRow()
@@ -158,10 +157,6 @@ struct MenuView: View {
             }
         }
         .padding(16)
-        .frame(width: Self.width)
-        .surface(radius: 18)
-        .padding(.trailing, 6)
-        .padding(.bottom, 6)
     }
 
     private var viewHint: String {

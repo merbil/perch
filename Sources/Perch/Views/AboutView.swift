@@ -23,6 +23,8 @@ struct AboutView: View {
                         .font(.perch(13, .semibold)).foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 4)
+                    Text("Works with Spotify. Apple Music is coming.")
+                        .font(.perch(12, .bold)).foregroundStyle(Palette.muted)
                 }
                 Spacer(minLength: 0)
                 Button(action: onClose) {

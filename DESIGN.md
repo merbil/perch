@@ -92,3 +92,6 @@ Like Glow: public GitHub repo, notarised builds.
 
 - Keyboard shortcuts for every form (jump to tile, deck, card, tuck/untuck).
 - Apple Music source.
+- Old iPad as a remote: Perch on the Mac serves a small web page on the home network (Stage look, play/skip/seek/shuffle/repeat, live updates). The iPad opens it in Safari, added to the home screen, Auto-Lock off, Guided Access on. No iPad app, no Spotify login or approval; needs the Mac on and Perch running. Check the iPad's iOS version first: iOS 9/10 Safari needs simpler web code.
+- Later, the same bridge for a real iPad or Apple TV companion app (could be the paid part). A Spotify Web API version would need sign-in, Premium for control, and Spotify's quota approval.
+- Monetizing: Developer ID + notarization first (no more "Open Anyway"), then pay-what-you-want or a one-time unlock. Mac App Store unlikely (sandboxed Apple Events to Spotify).

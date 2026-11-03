@@ -1,10 +1,14 @@
 # Perch release notes
 
-## Next (unreleased)
+## 0.2.7 (build 9): 2026-11-03
 
 ### Changed
 - The power button in the menu asks "Quit Perch?" first, so you don't quit it by accident.
 - The menu bar icon moves more smoothly and uses less effort. Its bars animate in place instead of being redrawn many times a second.
+- When Perch can't update itself, it says why. Usually you need admin rights to change apps in the Applications folder. It suggests downloading instead, or moving Perch to the Applications folder in your home folder.
+
+### Fixed
+- Another go at pinching while another app is in front. macOS doesn't send Perch a pinch then, so Perch now follows your two fingers on the trackpad itself.
 
 ## 0.2.6 (build 8): 2026-11-03
 

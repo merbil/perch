@@ -138,19 +138,9 @@ final class PanelController {
 
         // Pinch gestures also only go to the active app. A global monitor sees the ones aimed at
         // whatever app is in front; the local one covers the times Perch is active.
-        let gestures: NSEvent.EventTypeMask = [.magnify, .smartMagnify, .rotate, .swipe, .beginGesture, .endGesture, .gesture]
-        NSEvent.addGlobalMonitorForEvents(matching: gestures) { [weak self] event in
-            GestureLog.write(GestureLog.describe(event, from: "global"))
-            if event.type == .magnify { MainActor.assumeIsolated { self?.pinchIfOver(event) } }
-        }
-        NSEvent.addLocalMonitorForEvents(matching: gestures) { [weak self] event in
-            // Events aimed at the panel itself are handled in its sendEvent.
-            if event.window !== self?.panel {
-                GestureLog.write(GestureLog.describe(event, from: "local"))
-                if event.type == .magnify { MainActor.assumeIsolated { self?.pinchIfOver(event) } }
-            }
-            return event
-        }
+        // Only gestures sent to Perch itself, logged in its panel's sendEvent. A system-wide
+        // gesture monitor was tried in 0.2.4 and is gone: it never saw a pinch, and with it
+        // running the menu bar clock stopped opening Notification Center.
 
         state.minimise = { [weak self] in self?.switchCard(to: .cardMini) }
         state.expand = { [weak self] in self?.switchCard(to: .card) }

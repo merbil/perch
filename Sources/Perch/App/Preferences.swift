@@ -62,6 +62,9 @@ enum AppearanceChoice: String, CaseIterable, Identifiable {
     }
 }
 
+/// Stage's look: by size (dark once it's big), or always light or dark.
+enum StageLook: String { case auto, light, dark }
+
 /// Settings and the last position, kept in UserDefaults.
 @MainActor
 @Observable
@@ -79,6 +82,7 @@ final class Preferences {
     var appearance: AppearanceChoice { didSet { defaults.set(appearance.rawValue, forKey: "appearance") } }
     /// Minutes without mouse or keyboard before Stage opens full screen while music plays. 0 = never.
     var stageIdleMinutes: Int { didSet { defaults.set(stageIdleMinutes, forKey: "stageIdleMinutes") } }
+    var stageLook: StageLook { didSet { defaults.set(stageLook.rawValue, forKey: "stageLook") } }
     /// Whether the Stage window is open right now. Not kept: Perch starts with it closed.
     var isStageOpen = false
 
@@ -104,6 +108,7 @@ final class Preferences {
         isShown = defaults.object(forKey: "isShown") as? Bool ?? true
         hasSeenTutorial = defaults.bool(forKey: "hasSeenTutorial")
         appearance = defaults.string(forKey: "appearance").flatMap(AppearanceChoice.init(rawValue:)) ?? .system
+        stageLook = defaults.string(forKey: "stageLook").flatMap(StageLook.init(rawValue:)) ?? .auto
         stageIdleMinutes = defaults.object(forKey: "stageIdleMinutes") as? Int ?? 0
         tuckedStyle = defaults.string(forKey: "tuckedStyle").flatMap(TuckedStyle.init(rawValue:)) ?? .peek
         reduceMotion = defaults.object(forKey: "reduceMotion") as? Bool

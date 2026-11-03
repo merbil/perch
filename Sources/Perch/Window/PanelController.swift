@@ -7,6 +7,9 @@ final class PerchPanel: NSPanel {
     weak var controller: PanelController?
     private var heldMouseDown: NSEvent?
 
+    /// AppKit keeps windows below the menu bar; the top pill has to slide up behind it to tuck.
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
+
     init() {
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isFloatingPanel = true

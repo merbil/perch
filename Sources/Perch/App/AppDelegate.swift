@@ -33,6 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel = PanelController(player: player, prefs: prefs)
         statusItem = StatusItemController(player: player, prefs: prefs)
         stage = StageController(player: player, prefs: prefs)
+        stage.onOpen = { [weak self] in self?.panel.hide(remember: false) }
+        stage.onClose = { [weak self] in
+            if self?.prefs.isShown == true { self?.panel.show(remember: false) }
+        }
 
         let actions = MenuActions(
             toggleShown: { [weak self] in self?.toggleShown() },

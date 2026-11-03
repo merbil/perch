@@ -9,6 +9,7 @@ final class StageState {
     var isFullScreen = false
     /// Opened by "Start when idle": no controls at all, any input closes it.
     var isScreensaver = false
+    @ObservationIgnored var toggleFullScreen: () -> Void = {}
 }
 
 /// The big window: art, song, album, seek bar and controls, laid out by the window's shape.
@@ -25,13 +26,31 @@ struct StageView: View {
             let size = geo.size
             let shape: Shape = min(size.width, size.height) < 300 ? .small
                 : size.width > size.height * 1.15 ? .wide : .tall
-            let dark = stage.isFullScreen || stage.isScreensaver || (size.width >= 1000 && size.height >= 620)
+            let big = stage.isFullScreen || stage.isScreensaver || (size.width >= 1000 && size.height >= 620)
+            let dark = stage.isScreensaver || prefs.stageLook == .dark || (prefs.stageLook == .auto && big)
             ZStack {
                 background(dark: dark)
                 switch shape {
                 case .small: small(size: size, dark: dark)
                 case .wide: wide(size: size, dark: dark)
                 case .tall: tall(size: size, dark: dark)
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                if !stage.isScreensaver && shape != .small {
+                    HStack(spacing: 8) {
+                        StageCornerButton(symbol: dark ? "sun.max.fill" : "moon.fill", dark: dark,
+                                          label: dark ? "Light look" : "Dark look") {
+                            prefs.stageLook = dark ? .light : .dark
+                        }
+                        StageCornerButton(symbol: stage.isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
+                                          dark: dark, label: stage.isFullScreen ? "Exit full screen" : "Full screen") {
+                            stage.toggleFullScreen()
+                        }
+                    }
+                    .padding(14)
+                    .opacity(stage.controlsShown ? 1 : 0)
+                    .allowsHitTesting(stage.controlsShown)
                 }
             }
             .environment(\.colorScheme, dark ? .dark : .light)
@@ -259,5 +278,29 @@ private struct StageControls: View {
         .disabled(player.isIdle)
         .accessibilityLabel(label)
         .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
+/// The small square buttons in Stage's top corner: light/dark and full screen.
+private struct StageCornerButton: View {
+    var symbol: String
+    var dark: Bool
+    var label: String
+    var action: () -> Void
+
+    var body: some View {
+        let ink = dark ? Palette.paperFixed : Palette.inkFixed
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(ink)
+                .frame(width: 32, height: 32)
+                .background(RoundedRectangle(cornerRadius: 9).fill(dark ? Color(hex: 0x2E2738) : Palette.paperFixed))
+                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(ink.opacity(dark ? 0.35 : 1), lineWidth: 2))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .help(label)
     }
 }

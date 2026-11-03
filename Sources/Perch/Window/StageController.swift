@@ -42,6 +42,9 @@ final class StageController: NSObject, NSWindowDelegate {
     private var hideTimer: Timer?
     private var idleTimer: Timer?
     private var wakeTimer: Timer?
+    /// The small player steps aside while Stage is open, and comes back after.
+    var onOpen: () -> Void = {}
+    var onClose: () -> Void = {}
 
     init(player: PlayerModel, prefs: Preferences) {
         self.player = player
@@ -65,6 +68,7 @@ final class StageController: NSObject, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate()
         prefs.isStageOpen = true
+        onOpen()
         showControls()
     }
 
@@ -80,6 +84,7 @@ final class StageController: NSObject, NSWindowDelegate {
         window.minSize = NSSize(width: 200, height: 200)
         window.collectionBehavior = [.fullScreenPrimary, .managed]
         window.delegate = self
+        state.toggleFullScreen = { [weak window] in window?.toggleFullScreen(nil) }
         let host = StageHostingView(rootView: stageView(state))
         host.onMove = { [weak self] in self?.showControls() }
         window.contentView = host
@@ -97,6 +102,7 @@ final class StageController: NSObject, NSWindowDelegate {
         hideTimer?.invalidate()
         prefs.isStageOpen = false
         NSApp.setActivationPolicy(.accessory)
+        onClose()
     }
 
     func windowDidEnterFullScreen(_ notification: Notification) { state.isFullScreen = true }

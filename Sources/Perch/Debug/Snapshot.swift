@@ -18,7 +18,6 @@ enum Snapshot {
         Shot(name: "a-pill-left", form: .pill(.left)),
         Shot(name: "a-pill-bottom", form: .pill(.bottom)),
         Shot(name: "a-pill-top", form: .pill(.top)),
-        Shot(name: "a-tucked-top-hover", form: .tucked(.top), hover: true),
         Shot(name: "a-tucked-right", form: .tucked(.right)),
         Shot(name: "a-tucked-right-hover", form: .tucked(.right), hover: true),
         Shot(name: "tab-left", form: .tab(.left)),

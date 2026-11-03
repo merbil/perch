@@ -1,5 +1,14 @@
 # Perch release notes
 
+## Next (unreleased)
+
+### Added
+- Stage has two buttons in its top corner: one switches between light and dark, the other goes full screen and back. They fade out with the other controls.
+
+### Changed
+- The small player steps aside while Stage is open, and comes back when you close it.
+- The top pill doesn't tuck into the edge. macOS keeps windows out from behind the menu bar, so there's nowhere for it to go.
+
 ## 0.3.0 (build 10): 2026-11-03
 
 ### Added

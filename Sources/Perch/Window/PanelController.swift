@@ -7,9 +7,6 @@ final class PerchPanel: NSPanel {
     weak var controller: PanelController?
     private var heldMouseDown: NSEvent?
 
-    /// AppKit keeps windows below the menu bar; the top pill has to slide up behind it to tuck.
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
-
     init() {
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isFloatingPanel = true
@@ -380,7 +377,6 @@ final class PanelController {
         case .left where point.x > content.maxX - zone: return .outer
         case .right where point.x < content.minX + zone: return .outer
         case .bottom where point.y > content.maxY - zone: return .outer
-        case .top where point.y < content.minY + zone: return .outer
         default: break
         }
         guard edge.isSide else { return nil }
@@ -560,7 +556,7 @@ final class PanelController {
             return nil
         case .pill:
             prefs.along = wall.isSide ? point.y : point.x
-            return isTucked ? .tucked(wall) : .pill(wall)
+            return isTucked && wall != .top ? .tucked(wall) : .pill(wall)
         case .tab:
             prefs.along = point.y
             return isTucked ? .tucked(side) : .tab(side)
@@ -674,7 +670,8 @@ final class PanelController {
     /// Two-finger swipe into the edge tucks the pill or tab away (like dismissing a notification);
     /// swiping out again brings the pill back.
     func scrolled(_ event: NSEvent) {
-        guard let edge = state.form.edge, [.auto, .pill, .tab].contains(prefs.view) else { return }
+        // The top pill can't tuck: macOS keeps windows out from behind the menu bar.
+        guard let edge = state.form.edge, edge != .top, [.auto, .pill, .tab].contains(prefs.view) else { return }
         if event.phase == .began { swipe = 0; swipeDone = false }
         guard event.phase == .began || event.phase == .changed, !swipeDone else { return }
 

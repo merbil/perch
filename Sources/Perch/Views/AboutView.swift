@@ -19,7 +19,7 @@ struct AboutView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Perch").titleStyle(24)
                     Text(versionText).font(.perch(12, .bold)).foregroundStyle(Palette.muted)
-                    Text("A tiny music player in your Mac's menu bar. Currently works with Spotify, will work with Apple Music soon.")
+                    Text("A tiny music player in your Mac's menu bar. Spotify now, Apple Music soon.")
                         .font(.perch(13, .semibold)).foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 4)

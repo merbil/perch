@@ -11,6 +11,8 @@ final class SpotifySource: MusicSource {
 
     let name = "Spotify"
     let changeNotification: String? = "com.spotify.client.PlaybackStateChanged"
+    /// macOS refused to let Perch script Spotify (Privacy & Security › Automation).
+    var onPermissionDenied: (() -> Void)?
 
     /// One queue for every script: NSAppleScript isn't meant for several threads at once.
     private nonisolated static let queue = DispatchQueue(label: "com.merterbil.perch.spotify", qos: .userInitiated)
@@ -43,10 +45,13 @@ final class SpotifySource: MusicSource {
             return
         }
         Self.queue.async {
-            let reading = Self.execute(Self.readScript).map(Self.parse)
-                ?? SourceReading(state: .stopped, track: nil, position: 0)
+            let (output, error) = Self.run(Self.readScript)
+            let reading = output.map(Self.parse) ?? SourceReading(state: .stopped, track: nil, position: 0)
             DispatchQueue.main.async {
-                MainActor.assumeIsolated { done(reading) }
+                MainActor.assumeIsolated {
+                    if error == Self.notPermitted { self.onPermissionDenied?() }
+                    done(reading)
+                }
             }
         }
     }
@@ -128,13 +133,20 @@ final class SpotifySource: MusicSource {
         Self.queue.async { _ = Self.execute(source) }
     }
 
-    /// Runs on `queue` only.
+    /// errAEEventNotPermitted: the user said no to "Perch wants to control Spotify".
+    nonisolated static let notPermitted = -1743
+
     private nonisolated static func execute(_ source: String) -> String? {
+        run(source).output
+    }
+
+    /// Runs on `queue` only. The error number comes back too, to tell a refused permission apart.
+    private nonisolated static func run(_ source: String) -> (output: String?, error: Int?) {
         let script: NSAppleScript
         if let cached = compiled[source] {
             script = cached
         } else {
-            guard let fresh = NSAppleScript(source: source) else { return nil }
+            guard let fresh = NSAppleScript(source: source) else { return (nil, nil) }
             var compileError: NSDictionary?
             fresh.compileAndReturnError(&compileError)
             compiled[source] = fresh
@@ -144,8 +156,8 @@ final class SpotifySource: MusicSource {
         let result = script.executeAndReturnError(&error)
         if let error {
             NSLog("Perch: Spotify script failed: \(error)")
-            return nil
+            return (nil, error[NSAppleScript.errorNumber] as? Int)
         }
-        return result.stringValue
+        return (result.stringValue, nil)
     }
 }

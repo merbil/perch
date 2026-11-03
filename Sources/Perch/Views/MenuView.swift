@@ -17,6 +17,7 @@ struct MenuView: View {
     var actions: MenuActions
     /// The power button asks first; this shows the "Quit Perch?" row.
     @State private var confirmingQuit = false
+    @State private var opensAtLogin = LoginItem.isOn
 
     static let width: CGFloat = 288
 
@@ -96,7 +97,7 @@ struct MenuView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Big window").font(.perch(13, .bold)).foregroundStyle(Palette.ink)
-                        Text("Resizable, up to full screen").font(.perch(11, .bold)).foregroundStyle(Palette.muted)
+                        Text("Resizable, up to full screen · ⌃⌘P").font(.perch(11, .bold)).foregroundStyle(Palette.muted)
                     }
                     Spacer()
                     ArcadeSwitch(isOn: prefs.isStageOpen, accent: prefs.accentColor(for: player), label: "Big window") {
@@ -122,6 +123,18 @@ struct MenuView: View {
                 Spacer()
                 ArcadeSwitch(isOn: prefs.reduceMotion, accent: prefs.accentColor(for: player), label: "Reduce motion") {
                     prefs.reduceMotion.toggle()
+                }
+            }
+
+            HStack {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Open at login").font(.perch(13, .bold)).foregroundStyle(Palette.ink)
+                    Text("Starts with your Mac").font(.perch(11, .bold)).foregroundStyle(Palette.muted)
+                }
+                Spacer()
+                ArcadeSwitch(isOn: opensAtLogin, accent: prefs.accentColor(for: player), label: "Open at login") {
+                    LoginItem.set(!opensAtLogin)
+                    opensAtLogin = LoginItem.isOn
                 }
             }
 

@@ -89,6 +89,12 @@ enum Snapshot {
         if let image = renderDark(MenuView(actions: MenuActions()).environment(prefs).environment(demo)) {
             write(image, to: folder.appendingPathComponent("dark-menu-stage.png"))
         }
+        if let image = render(PermissionView(openSettings: {}, onClose: {}).environment(prefs).environment(demo)) {
+            write(image, to: folder.appendingPathComponent("permission.png"))
+        }
+        if let image = render(MenuBarHintView().environment(prefs).environment(demo)) {
+            write(image, to: folder.appendingPathComponent("menu-bar-hint.png"))
+        }
 
         if let image = render(AboutView(onClose: {}).environment(prefs).environment(demo)) {
             write(image, to: folder.appendingPathComponent("about.png"))

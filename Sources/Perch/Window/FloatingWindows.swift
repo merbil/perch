@@ -104,3 +104,37 @@ final class TutorialWindowController {
         panel.orderOut(nil)
     }
 }
+
+/// The first-launch note under the menu bar icon. Goes away on a click anywhere or after a while.
+@MainActor
+final class HintController {
+    private let panel = PopupPanel()
+    private var monitor: Any?
+
+    init<Content: View>(content: Content) {
+        panel.contentView = ClickThroughHostingView(rootView: content)
+    }
+
+    func show(below buttonFrame: NSRect?) {
+        guard let host = panel.contentView, let buttonFrame else { return }
+        let size = host.fittingSize
+        let screen = NSScreen.screens.first { $0.frame.intersects(buttonFrame) } ?? NSScreen.main ?? NSScreen.screens[0]
+        let x = min(max(buttonFrame.midX - 21, screen.frame.minX + 8), screen.frame.maxX - size.width - 8)
+        panel.setFrame(NSRect(x: x, y: screen.visibleFrame.maxY - size.height - 2, width: size.width, height: size.height), display: true)
+        panel.alphaValue = 0
+        panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { $0.duration = 0.25; panel.animator().alphaValue = 1 }
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            MainActor.assumeIsolated { self?.close() }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in self?.close() }
+    }
+
+    func close() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+        guard panel.isVisible else { return }
+        NSAnimationContext.runAnimationGroup({ $0.duration = 0.2; panel.animator().alphaValue = 0 },
+                                            completionHandler: { [panel] in panel.orderOut(nil) })
+    }
+}

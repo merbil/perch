@@ -72,8 +72,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !demo { Updater.shared.start() }
         if prefs.isShown { panel.show() }
         stage.startIdleWatch()
-        // Control-Command-P opens and closes Stage from anywhere.
-        stageKey = HotKey(keyCode: kVK_ANSI_P, modifiers: controlKey | cmdKey) { [weak self] in self?.stage.toggle() }
+        // Shift-Command-9 opens and closes Stage from anywhere.
+        stageKey = HotKey(keyCode: kVK_ANSI_9, modifiers: shiftKey | cmdKey) { [weak self] in self?.stage.toggle() }
         if !prefs.hasSeenTutorial {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.showTutorial() }
         }

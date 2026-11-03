@@ -97,7 +97,7 @@ struct MenuView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Big window").font(.perch(13, .bold)).foregroundStyle(Palette.ink)
-                        Text("Resizable, up to full screen · ⌃⌘P").font(.perch(11, .bold)).foregroundStyle(Palette.muted)
+                        Text("Resizable, up to full screen · ⇧⌘9").font(.perch(11, .bold)).foregroundStyle(Palette.muted)
                     }
                     Spacer()
                     ArcadeSwitch(isOn: prefs.isStageOpen, accent: prefs.accentColor(for: player), label: "Big window") {

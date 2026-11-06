@@ -1,5 +1,10 @@
 # Perch release notes
 
+## Unreleased
+
+### Fixed
+- The app icon looks right in the Dock and in Finder again. Its shadow stuck out past the rounded square, so macOS shrank it onto a grey plate. The shadow sits inside the tile now.
+
 ## 0.3.1 (build 11): 2026-11-03
 
 ### Added

@@ -40,28 +40,28 @@ struct LogoMark: View {
 }
 
 /// The app icon: the mark on a paper tile with an ink outline and a hard shadow.
+/// Everything stays inside the tile's rounded square: macOS 26 and later shrink an icon
+/// that pokes out of it onto a grey plate.
 struct AppIconView: View {
     /// Full canvas size; the tile follows Apple's 824-in-1024 icon grid.
     var size: CGFloat = 1024
 
     var body: some View {
         let tile = size * 824 / 1024
-        let radius = tile * 0.23
+        let shape = RoundedRectangle(cornerRadius: tile * 0.225, style: .continuous)
         let line = tile * 0.03
-        let shadow = tile * 0.04
+        let shadow = tile * 0.035
         ZStack {
-            RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Palette.inkFixed)
-                .frame(width: tile, height: tile)
-                .offset(x: shadow, y: shadow)
-            RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Palette.paperFixed)
-                .frame(width: tile, height: tile)
-            RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.inkFixed, lineWidth: line)
-                .frame(width: tile, height: tile)
+            // The shadow is the ink showing below and right of the paper.
+            shape.fill(Palette.inkFixed)
+            shape.fill(Palette.paperFixed).padding([.trailing, .bottom], shadow)
+            shape.inset(by: line / 2).stroke(Palette.inkFixed, lineWidth: line).padding([.trailing, .bottom], shadow)
             // The mark's drawing sits a little right of its grid's centre; nudge it back.
             LogoMark(ink: Palette.inkFixed).frame(width: tile * 0.84, height: tile * 0.84)
-                .offset(x: -tile * 0.84 * 5 / 160, y: tile * 0.84 * 1.5 / 160)
+                .offset(x: -tile * 0.84 * 5 / 160 - shadow / 2, y: tile * 0.84 * 1.5 / 160 - shadow / 2)
         }
-        .offset(x: -shadow / 2, y: -shadow / 2)
+        .frame(width: tile, height: tile)
+        .clipShape(shape)
         .frame(width: size, height: size)
     }
 }

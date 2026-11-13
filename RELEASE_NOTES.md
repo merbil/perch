@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- A third look for Stage that fills the background with a deep shade of the album cover's color, and changes with every song. The light/dark button in Stage's corner now steps through light, dark and cover. Covers without much color get the dark look.
+
 ### Fixed
 - The app icon looks right in the Dock and in Finder again. Its shadow stuck out past the rounded square, so macOS shrank it onto a grey plate. The shadow sits inside the tile now.
 

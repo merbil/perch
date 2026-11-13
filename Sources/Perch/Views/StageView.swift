@@ -27,9 +27,11 @@ struct StageView: View {
             let shape: Shape = min(size.width, size.height) < 300 ? .small
                 : size.width > size.height * 1.15 ? .wide : .tall
             let big = stage.isFullScreen || stage.isScreensaver || (size.width >= 1000 && size.height >= 620)
-            let dark = stage.isScreensaver || prefs.stageLook == .dark || (prefs.stageLook == .auto && big)
+            let look = stage.isScreensaver && prefs.stageLook != .cover ? .dark
+                : prefs.stageLook == .auto ? (big ? .dark : .light) : prefs.stageLook
+            let dark = look != .light
             ZStack {
-                background(dark: dark)
+                background(look)
                 switch shape {
                 case .small: small(size: size, dark: dark)
                 case .wide: wide(size: size, dark: dark)
@@ -39,9 +41,11 @@ struct StageView: View {
             .overlay(alignment: .topTrailing) {
                 if !stage.isScreensaver && shape != .small {
                     HStack(spacing: 8) {
-                        StageCornerButton(symbol: dark ? "sun.max.fill" : "moon.fill", dark: dark,
-                                          label: dark ? "Light look" : "Dark look") {
-                            prefs.stageLook = dark ? .light : .dark
+                        // One button steps through the looks: light, dark, the cover's color.
+                        let next: StageLook = look == .light ? .dark : look == .dark ? .cover : .light
+                        StageCornerButton(symbol: next == .dark ? "moon.fill" : next == .cover ? "paintpalette.fill" : "sun.max.fill",
+                                          dark: dark, label: next == .dark ? "Dark look" : next == .cover ? "Cover color look" : "Light look") {
+                            prefs.stageLook = next
                         }
                         StageCornerButton(symbol: stage.isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
                                           dark: dark, label: stage.isFullScreen ? "Exit full screen" : "Full screen") {
@@ -58,8 +62,15 @@ struct StageView: View {
         .ignoresSafeArea()
     }
 
-    @ViewBuilder private func background(dark: Bool) -> some View {
-        if dark {
+    @ViewBuilder private func background(_ look: StageLook) -> some View {
+        if look == .cover, let deep = player.coverBackground {
+            // The cover's color, a touch lighter at the top so it doesn't feel flat.
+            ZStack {
+                deep
+                LinearGradient(colors: [.white.opacity(0.10), .black.opacity(0.22)], startPoint: .top, endPoint: .bottom)
+            }
+            .animation(.easeInOut(duration: 1.2), value: player.track?.id)
+        } else if look != .light {
             ZStack {
                 Color(hex: 0x221C2B)
                 prefs.accentColor(for: player).opacity(0.18)
@@ -201,7 +212,9 @@ private struct StageSeekBar: View {
         VStack(spacing: 5 * scale) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(dark ? Color(hex: 0x2E2738) : .white)
+                    // On the cover's color a see-through track blends in; plum would look stuck on.
+                    let onCover = prefs.stageLook == .cover && player.coverBackground != nil
+                    Capsule().fill(onCover ? Color.white.opacity(0.18) : dark ? Color(hex: 0x2E2738) : .white)
                     Capsule().fill(prefs.accentColor(for: player))
                         .frame(width: max(height, geo.size.width * progress))
                     if !dark { Capsule().strokeBorder(Palette.inkFixed, lineWidth: 2) }

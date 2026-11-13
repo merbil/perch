@@ -5,6 +5,17 @@ extension NSImage {
     /// The cover's most colorful hue, pushed bright so it fits next to the other accents.
     /// Nil for black-and-white or very dull covers.
     func vibrantAccent() -> Color? {
+        guard let (hue, saturation) = dominantHue() else { return nil }
+        return Color(hue: hue, saturation: min(max(saturation, 0.55), 0.85), brightness: 0.97)
+    }
+
+    /// The same hue, deep enough to fill Stage behind light text.
+    func deepBackground() -> Color? {
+        guard let (hue, saturation) = dominantHue() else { return nil }
+        return Color(hue: hue, saturation: min(max(saturation, 0.5), 0.8), brightness: 0.34)
+    }
+
+    private func dominantHue() -> (Double, Double)? {
         guard let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
         let side = 24
         guard let context = CGContext(
@@ -36,8 +47,7 @@ extension NSImage {
 
         guard let best = score.indices.max(by: { score[$0] < score[$1] }), score[best] > 2 else { return nil }
         let hue = hueSum[best] / score[best]
-        let saturation = min(max(saturationSum[best] / score[best], 0.55), 0.85)
-        return Color(hue: hue, saturation: saturation, brightness: 0.97)
+        return (hue, saturationSum[best] / score[best])
     }
 }
 

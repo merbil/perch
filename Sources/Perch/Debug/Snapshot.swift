@@ -87,6 +87,18 @@ enum Snapshot {
             let view = StageView().environment(stage).environment(prefs).environment(demo).frame(width: width, height: height)
             if let image = render(view) { write(image, to: folder.appendingPathComponent("\(name).png")) }
         }
+        // The cover look, full screen, with a few made-up covers.
+        let savedLook = prefs.stageLook
+        prefs.stageLook = .cover
+        for (name, colors) in [("teal", [0x0E7C7B, 0xF2C14E]), ("pink", [0xE84A8A, 0x2B1B3D]), ("orange", [0xF26B21, 0x1D3557])] {
+            demo.showArtwork(fakeCover(colors.map { NSColor(rgb: UInt32($0)) }))
+            let stage = StageState()
+            stage.isFullScreen = true
+            let view = StageView().environment(stage).environment(prefs).environment(demo).frame(width: 1440, height: 900)
+            if let image = render(view) { write(image, to: folder.appendingPathComponent("stage-cover-\(name).png")) }
+        }
+        demo.showArtwork(nil)
+        prefs.stageLook = savedLook
         if let image = renderDark(MenuView(actions: MenuActions()).environment(prefs).environment(demo)) {
             write(image, to: folder.appendingPathComponent("dark-menu-stage.png"))
         }
@@ -188,6 +200,15 @@ enum Snapshot {
               let png = bitmap.representation(using: .png, properties: [:]) else { return }
         try? png.write(to: url)
     }
+
+    /// A simple two-color cover: a background with a big circle, enough for the color picker.
+    static func fakeCover(_ colors: [NSColor]) -> NSImage {
+        NSImage(size: NSSize(width: 300, height: 300), flipped: false) { rect in
+            colors[0].setFill(); rect.fill()
+            colors[1].setFill(); NSBezierPath(ovalIn: rect.insetBy(dx: 60, dy: 60).offsetBy(dx: 30, dy: -20)).fill()
+            return true
+        }
+    }
 }
 
 /// Spotify closed, for the idle look.
@@ -199,4 +220,5 @@ private final class ClosedSource: MusicSource {
     func playPause() {}
     func next() {}
     func previous() {}
+
 }

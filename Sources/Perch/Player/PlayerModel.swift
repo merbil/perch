@@ -12,10 +12,15 @@ final class PlayerModel {
     private(set) var shuffling = false
     private(set) var repeating = false
     private(set) var artwork: NSImage? {
-        didSet { coverAccent = artwork?.vibrantAccent() }
+        didSet {
+            coverAccent = artwork?.vibrantAccent()
+            coverBackground = artwork?.deepBackground()
+        }
     }
     /// Accent picked from the album art, for the "From Cover Art" setting.
     private(set) var coverAccent: Color?
+    /// A deep color from the album art, for Stage's cover look.
+    private(set) var coverBackground: Color?
 
     @ObservationIgnored let source: MusicSource
     /// Called after every refresh (the menu bar icon listens to this).
@@ -27,6 +32,9 @@ final class PlayerModel {
     init(source: MusicSource) {
         self.source = source
     }
+
+    /// Snapshots only: show a made-up cover.
+    func showArtwork(_ image: NSImage?) { artwork = image }
 
     var isPlaying: Bool { state == .playing }
     /// Nothing to show: the app is closed or stopped. Views dim and show the last track if there was one.

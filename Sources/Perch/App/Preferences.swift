@@ -63,7 +63,7 @@ enum AppearanceChoice: String, CaseIterable, Identifiable {
 }
 
 /// Stage's look: by size (dark once it's big), or always light or dark.
-enum StageLook: String { case auto, light, dark }
+enum StageLook: String { case auto, light, dark, cover }
 
 /// Settings and the last position, kept in UserDefaults.
 @MainActor

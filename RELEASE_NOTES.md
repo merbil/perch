@@ -1,6 +1,6 @@
 # Perch release notes
 
-## Unreleased
+## 0.4.0 (build 12): 2026-11-13
 
 ### Added
 - A third look for Stage that takes its colors from the album cover and changes with every song. Light covers get a soft pastel blend of two of their colors, dark covers a deep one. Black-and-white covers get Perch's paper or its dark look, whichever is closer. The light/dark button in Stage's corner is now a switch with all three looks side by side, and the cover one shows a little swatch of its colors.

@@ -56,7 +56,7 @@ final class PerchPanel: NSPanel {
 /// movement to the active app's windows. An always-on tracking area gets it anyway, for the
 /// resize arrows over the tucked art.
 private final class PerchHostingView<Content: View>: NSHostingView<Content> {
-    var cursorFor: (NSPoint) -> NSCursor? = { _ in nil }
+    var cursorFor: @MainActor (NSPoint) -> NSCursor? = { _ in nil }
     private var area: NSTrackingArea?
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -130,9 +130,7 @@ final class PanelController {
         let host = PerchHostingView(rootView: root)
         panel.contentView = host
         panel.controller = self
-        host.cursorFor = { [weak self] point in
-            MainActor.assumeIsolated { self?.resizeCursor(at: point) }
-        }
+        host.cursorFor = { [weak self] point in self?.resizeCursor(at: point) }
 
         state.minimise = { [weak self] in self?.switchCard(to: .cardMini) }
         state.openStage = { [weak self] in self?.openStage() }
@@ -699,12 +697,13 @@ final class PanelController {
 
     // MARK: Helpers
 
-    private func animate(duration: TimeInterval, _ changes: @escaping () -> Void, completion: (() -> Void)? = nil) {
+    /// AppKit calls `completionHandler` on the main thread, so `completion` runs there too.
+    private func animate(duration: TimeInterval, _ changes: @escaping () -> Void, completion: (@MainActor @Sendable () -> Void)? = nil) {
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = prefs.reduceMotion ? 0 : duration
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             changes()
-        }, completionHandler: completion)
+        }, completionHandler: completion.map { done in { @Sendable in MainActor.assumeIsolated { done() } } })
     }
 }
 

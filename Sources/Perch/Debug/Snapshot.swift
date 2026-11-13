@@ -1,3 +1,4 @@
+#if DEBUG
 import AppKit
 import SwiftUI
 
@@ -235,3 +236,4 @@ private final class ClosedSource: MusicSource {
     func previous() {}
 
 }
+#endif

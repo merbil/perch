@@ -101,6 +101,9 @@ To see every form as an image without running the app: `.build/debug/Perch --sna
 - First commit after your OK.
 - Backlog in DESIGN.md: keyboard shortcuts, Apple Music.
 
+## Backlog: a self-check (noted 2026-11-10)
+- Perch has no automated tests; the only check is that `scripts/build-app.sh` builds. Add a `--selftest` flag like Glow's in a later build phase.
+
 ## Version numbers
 - 0.MINOR.PATCH. Patch (0.2.6 → 0.2.7): fixes and small tweaks only. Minor (0.2 → 0.3): new features. 1.0 once Perch feels finished (Apple Music in).
 - The build number (CFBundleVersion) goes up by one with every release and is never reused; the updater only offers a higher version.

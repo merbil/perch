@@ -90,7 +90,7 @@ enum Snapshot {
         // A long title, to check the buttons sit where they do for a short one.
         demo.source.next()
         demo.refresh()
-        for (name, width, height) in [("stage-wide-long", 880.0, 520.0), ("stage-tall-long", 420.0, 680.0)] {
+        for (name, width, height) in [("stage-wide-long", 880.0, 520.0), ("stage-tall-long", 420.0, 680.0), ("stage-tall-big", 1000.0, 1100.0)] {
             let view = StageView().environment(StageState()).environment(prefs).environment(demo).frame(width: width, height: height)
             if let image = render(view) { write(image, to: folder.appendingPathComponent("\(name).png")) }
         }

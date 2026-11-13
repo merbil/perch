@@ -100,7 +100,9 @@ struct StageView: View {
     }
 
     private func tall(size: CGSize, dark: Bool) -> some View {
-        let side = min(size.width * 0.72, size.height * 0.5)
+        // The words and buttons under the art take about as much height as the art,
+        // so the art gets half of what's left after a margin top and bottom.
+        let side = min(size.width * 0.72, (size.height - 120) / 2.05)
         let scale = side / 300
         return VStack(spacing: 22 * scale) {
             StageArt(side: side, dark: dark)

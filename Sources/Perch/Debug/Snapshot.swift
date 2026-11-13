@@ -87,10 +87,23 @@ enum Snapshot {
             let view = StageView().environment(stage).environment(prefs).environment(demo).frame(width: width, height: height)
             if let image = render(view) { write(image, to: folder.appendingPathComponent("\(name).png")) }
         }
+        // A long title, to check the buttons sit where they do for a short one.
+        demo.source.next()
+        demo.refresh()
+        for (name, width, height) in [("stage-wide-long", 880.0, 520.0), ("stage-tall-long", 420.0, 680.0)] {
+            let view = StageView().environment(StageState()).environment(prefs).environment(demo).frame(width: width, height: height)
+            if let image = render(view) { write(image, to: folder.appendingPathComponent("\(name).png")) }
+        }
+        demo.source.previous()
+        demo.refresh()
+
         // The cover look, full screen, with a few made-up covers.
         let savedLook = prefs.stageLook
         prefs.stageLook = .cover
-        for (name, colors) in [("teal", [0x0E7C7B, 0xF2C14E]), ("pink", [0xE84A8A, 0x2B1B3D]), ("orange", [0xF26B21, 0x1D3557])] {
+        for (name, colors) in [("teal", [0x0E7C7B, 0xF2C14E]), ("pink", [0xE84A8A, 0x2B1B3D]), ("orange", [0xF26B21, 0x1D3557]),
+                                ("navy", [0x14213D, 0xC9A66B]), ("red", [0x111111, 0xC0262D]), ("green", [0x234D20, 0xE9E4C9]),
+                                ("purple", [0x3B1F5C, 0xF5D547]), ("grey", [0x2A2A2A, 0xBDBDBD]),
+                                ("wine", [0x2A0F1E, 0x8C2F4B]), ("paper", [0xEDE8DF, 0x9A9A9A])] {
             demo.showArtwork(fakeCover(colors.map { NSColor(rgb: UInt32($0)) }))
             let stage = StageState()
             stage.isFullScreen = true

@@ -3,9 +3,10 @@
 ## Unreleased
 
 ### Added
-- A third look for Stage that fills the background with a deep shade of the album cover's color, and changes with every song. The light/dark button in Stage's corner now steps through light, dark and cover. Covers without much color get the dark look.
+- A third look for Stage that takes its colors from the album cover and changes with every song. Light covers get a soft pastel blend of two of their colors, dark covers a deep one. Black-and-white covers get Perch's paper or its dark look, whichever is closer. The light/dark button in Stage's corner is now a switch with all three looks side by side, and the cover one shows a little swatch of its colors.
 
 ### Fixed
+- Stage's buttons stay in the same spot from song to song. Before, a two-line title or a missing album name moved them, which made skipping several songs in a row fiddly.
 - The app icon looks right in the Dock and in Finder again. Its shadow stuck out past the rounded square, so macOS shrank it onto a grey plate. The shadow sits inside the tile now.
 
 ## 0.3.1 (build 11): 2026-11-03

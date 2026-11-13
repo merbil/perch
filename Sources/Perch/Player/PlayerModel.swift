@@ -14,13 +14,13 @@ final class PlayerModel {
     private(set) var artwork: NSImage? {
         didSet {
             coverAccent = artwork?.vibrantAccent()
-            coverBackground = artwork?.deepBackground()
+            coverBackground = artwork?.stageBackground()
         }
     }
     /// Accent picked from the album art, for the "From Cover Art" setting.
     private(set) var coverAccent: Color?
-    /// A deep color from the album art, for Stage's cover look.
-    private(set) var coverBackground: Color?
+    /// Colors from the album art, for Stage's cover look.
+    private(set) var coverBackground: CoverBackground?
 
     @ObservationIgnored let source: MusicSource
     /// Called after every refresh (the menu bar icon listens to this).

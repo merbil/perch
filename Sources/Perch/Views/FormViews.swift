@@ -341,7 +341,7 @@ struct DeckView: View {
 
     private var marqueeText: String {
         guard let track = player.track else { return "*** PERCH - NOTHING PLAYING ***" }
-        return "*** \(track.artist.uppercased()) - \(track.title.uppercased()) (\(track.duration.clock)) ***"
+        return "*** \(player.artist.uppercased()) - \(track.title.uppercased()) (\(track.duration.clock)) ***"
     }
 }
 

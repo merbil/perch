@@ -160,4 +160,21 @@ final class SpotifySource: MusicSource {
         }
         return (result.stringValue, nil)
     }
+
+    /// Spotify's AppleScript only gives the first artist ("Matt Corby" for "Matt Corby, Tash Sultana").
+    /// The song's public page on open.spotify.com lists all of them in a meta tag, so Perch reads that,
+    /// once per song. If the page can't be read, the first artist stays.
+    func allArtists(of track: Track) async -> String? {
+        guard track.id.hasPrefix("spotify:track:"),
+              let url = URL(string: "https://open.spotify.com/track/" + track.id.dropFirst("spotify:track:".count)),
+              let (data, _) = try? await URLSession.shared.data(from: url),
+              let page = String(data: data, encoding: .utf8),
+              let start = page.range(of: "name=\"music:musician_description\" content=\""),
+              let end = page[start.upperBound...].firstIndex(of: "\"") else { return nil }
+        let names = String(page[start.upperBound..<end])
+            .replacingOccurrences(of: "&amp;", with: "&").replacingOccurrences(of: "&#x27;", with: "'")
+            .replacingOccurrences(of: "&#39;", with: "'").replacingOccurrences(of: "&quot;", with: "\"")
+        // Only use it when it really is the same song's artists, with more names than Spotify gave.
+        return names.hasPrefix(track.artist) && names.count > track.artist.count ? names : nil
+    }
 }

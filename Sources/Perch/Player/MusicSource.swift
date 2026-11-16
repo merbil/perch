@@ -44,9 +44,12 @@ protocol MusicSource: AnyObject {
     func seek(to seconds: Double)
     func setShuffling(_ on: Bool)
     func setRepeating(_ on: Bool)
+    /// Every artist on the track, when the app only reports the first one. Nil if there's nothing better.
+    func allArtists(of track: Track) async -> String?
 }
 
 extension MusicSource {
+    func allArtists(of track: Track) async -> String? { nil }
     func seek(to seconds: Double) {}
     func setShuffling(_ on: Bool) {}
     func setRepeating(_ on: Bool) {}

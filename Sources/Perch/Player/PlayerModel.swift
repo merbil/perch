@@ -27,6 +27,9 @@ final class PlayerModel {
     @ObservationIgnored var onRefresh: (() -> Void)?
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var artworkURL: URL?
+    /// Full artist lists by track id, for apps that only report the first artist.
+    private var allArtists: [String: String] = [:]
+    @ObservationIgnored private var askedArtists: Set<String> = []
     @ObservationIgnored private var observer: NSObjectProtocol?
 
     init(source: MusicSource) {
@@ -44,7 +47,10 @@ final class PlayerModel {
         return min(max(position / duration, 0), 1)
     }
     var title: String { track?.title ?? "Nothing playing" }
-    var artist: String { track?.artist ?? (state == .notRunning ? "\(source.name) is closed" : source.name) }
+    var artist: String {
+        guard let track else { return state == .notRunning ? "\(source.name) is closed" : source.name }
+        return allArtists[track.id] ?? track.artist
+    }
 
     func start() {
         refresh()
@@ -80,6 +86,7 @@ final class PlayerModel {
         // Keep the last track around when the app stops, so the idle view isn't empty.
         if let newTrack = reading.track { track = newTrack }
         loadArtwork(track?.artworkURL)
+        lookUpArtists(track)
         onRefresh?()
     }
 
@@ -128,6 +135,14 @@ final class PlayerModel {
 
     private func refreshSoon() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.refresh() }
+    }
+
+    private func lookUpArtists(_ track: Track?) {
+        guard let track, askedArtists.insert(track.id).inserted else { return }
+        Task { [weak self] in
+            guard let names = await self?.source.allArtists(of: track) else { return }
+            self?.allArtists[track.id] = names
+        }
     }
 
     private func loadArtwork(_ url: URL?) {

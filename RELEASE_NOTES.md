@@ -1,5 +1,10 @@
 # Perch release notes
 
+## Unreleased
+
+### Fixed
+- Songs with more than one artist show all of them, like "Matt Corby, Tash Sultana". Spotify only tells other apps the first artist, so Perch looks up the rest on the song's public Spotify page, once per song.
+
 ## 0.4.1 (build 13): 2026-11-16
 
 ### Fixed

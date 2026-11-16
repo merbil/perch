@@ -1,5 +1,10 @@
 # Perch release notes
 
+## 0.4.1 (build 13): 2026-11-16
+
+### Fixed
+- Stage's seek bar is thin again, with a round knob that sits on top of it. It was being drawn as tall as the knob. The knob also stays inside the bar at the start and end of a song now, and a click jumps right to where the knob would go.
+
 ## 0.4.0 (build 12): 2026-11-13
 
 ### Added

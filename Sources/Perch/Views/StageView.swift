@@ -210,27 +210,31 @@ private struct StageSeekBar: View {
         let duration = player.track?.duration ?? 0
         VStack(spacing: 5 * scale) {
             GeometryReader { geo in
+                // The knob travels inside the bar, so it never hangs off either end,
+                // and the fill's round end always tucks under it.
+                let travel = max(geo.size.width - knob, 0)
                 ZStack(alignment: .leading) {
                     // See-through, so it sits on the dark look and on deep cover colors alike.
                     Capsule().fill(dark ? Color.white.opacity(0.13) : .white)
+                        .frame(height: height)
                     Capsule().fill(prefs.accentColor(for: player))
-                        .frame(width: max(height, geo.size.width * progress))
-                    if !dark { Capsule().strokeBorder(Palette.inkFixed, lineWidth: 2) }
+                        .frame(width: knob / 2 + travel * progress, height: height)
+                    if !dark { Capsule().strokeBorder(Palette.inkFixed, lineWidth: 2).frame(height: height) }
                     Circle()
                         .fill(Palette.paperFixed)
                         .overlay(Circle().strokeBorder(Palette.inkFixed, lineWidth: dark ? 0 : 2))
                         .frame(width: knob, height: knob)
-                        .offset(x: geo.size.width * progress - knob / 2)
+                        .offset(x: travel * progress)
                         .opacity(stage.controlsShown && !stage.isScreensaver ? 1 : 0)
                 }
-                .frame(height: height)
+                .frame(height: knob)
                 .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
-                        .onChanged { value in dragging = min(max(value.location.x / geo.size.width, 0), 1) }
+                        .onChanged { value in dragging = min(max((value.location.x - knob / 2) / max(travel, 1), 0), 1) }
                         .onEnded { value in
-                            player.seek(to: min(max(value.location.x / geo.size.width, 0), 1))
+                            player.seek(to: min(max((value.location.x - knob / 2) / max(travel, 1), 0), 1))
                             dragging = nil
                         }
                 )
